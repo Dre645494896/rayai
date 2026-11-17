@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.sites/
+.playwright-cli/
+*.log
+.env
+.env.*

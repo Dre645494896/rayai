@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: rayai
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: MUZE_BASE_URL
+        value: https://api.muzeai.top/v1
+      - key: FRONTEND_ORIGIN
+        value: https://dre645494896.github.io
+      - key: MUZE_API_KEY
+        sync: false
+      - key: INVITE_CODES
+        sync: false
+      - key: INVITE_SESSION_SECRET
+        generateValue: true

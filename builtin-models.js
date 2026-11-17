@@ -1,0 +1,2 @@
+export const builtinModels=['gpt-image-2.6-sunburst'];
+export function applyBuiltin(input,env){if(!input?.builtinId)return input;if(!builtinModels.includes(input.builtinId))throw Object.assign(new Error('未知的内置模型'),{status:400});if(!env.MUZE_API_KEY)throw Object.assign(new Error('内置模型暂未配置，请稍后再试'),{status:503});return {...input,model:input.builtinId,baseUrl:env.MUZE_BASE_URL||'https://api.muzeai.top/v1',apiKey:env.MUZE_API_KEY};}
