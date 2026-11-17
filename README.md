@@ -1,6 +1,6 @@
 # RayAI · AI 创作平台
 
-网页计划发布在 [GitHub Pages](https://dre645494896.github.io/rayai/)，图片生成服务部署在 Render。GitHub Pages 只承载静态页面，不保存管理员 API Key，也不能独自处理生图请求。
+网页已发布在 [GitHub Pages](https://dre645494896.github.io/rayai/)，图片生成服务运行在 [Render](https://rayai-cb2s.onrender.com/api/health)。GitHub Pages 只承载静态页面，不保存管理员 API Key，也不能独自处理生图请求。
 
 ## 运行与发布
 
