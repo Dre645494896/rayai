@@ -2,12 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { family, officialFields, builtinFields, sanitizeOutput, resolveSize, RATIOS, TIERS } from './image-settings.js';
 
-test('两个新增内置模型使用接口文档中的文生图默认值', () => {
-  for (const model of ['gpt-image-2','gpt-image-2.5-sunburst']) {
+test('三个内置模型使用相同的画面设置和请求参数', () => {
+  const fields=builtinFields('gpt-image-2.6-sunburst');
+  for (const model of ['gpt-image-2.6-sunburst','gpt-image-2.5-sunburst','gpt-image-2']) {
+    assert.deepEqual(builtinFields(model),fields);
     assert.deepEqual(Object.fromEntries(builtinFields(model).map(f=>[f.name,f.value])), {
-      size:'1024x1024',quality:'standard',style:'vivid',n:'1',response_format:'url'
+      size:'auto',quality:'auto',complexity:'high',output_format:'png'
     });
-    assert.ok(builtinFields(model).every(f=>f.modes==='generate'));
+    assert.ok(builtinFields(model).every(f=>f.modes==='both'));
   }
 });
 
