@@ -1,6 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { family, officialFields, sanitizeOutput, resolveSize, RATIOS, TIERS } from './image-settings.js';
+import { family, officialFields, builtinFields, sanitizeOutput, resolveSize, RATIOS, TIERS } from './image-settings.js';
+
+test('两个新增内置模型使用接口文档中的文生图默认值', () => {
+  for (const model of ['gpt-image-2','gpt-image-2.5-sunburst']) {
+    assert.deepEqual(Object.fromEntries(builtinFields(model).map(f=>[f.name,f.value])), {
+      size:'1024x1024',quality:'standard',style:'vivid',n:'1',response_format:'url'
+    });
+    assert.ok(builtinFields(model).every(f=>f.modes==='generate'));
+  }
+});
 
 test('各 GPT Image 系列使用对应画质和细节选项', () => {
   assert.equal(family('gpt-image-2.6-sunburst'), '2.6');

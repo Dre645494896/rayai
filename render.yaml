@@ -16,6 +16,10 @@ services:
         value: https://dre645494896.github.io
       - key: MUZE_API_KEY
         sync: false
+      - key: MUZE_API_KEY_IMAGE_2_5
+        sync: false
+      - key: MUZE_API_KEY_IMAGE_2
+        sync: false
       - key: INVITE_CODES
         sync: false
       - key: INVITE_SESSION_SECRET

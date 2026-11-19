@@ -80,6 +80,20 @@ test('内置模型只使用服务端模型、地址和密钥',async()=>{
   assert.doesNotMatch(await result.text(),/admin-secret/);
   const forged=await worker.fetch(post('/api/generate',{...base,builtinId:'gpt-image-2.6-sunburst',mode:'generate',params:{model:'other'}}),env);
   assert.equal(forged.status,400);
-  const removed=await worker.fetch(post('/api/generate',{...base,builtinId:'gpt-image-2',mode:'generate'}),env);
-  assert.equal(removed.status,400);
+  const unknown=await worker.fetch(post('/api/generate',{...base,builtinId:'unknown-model',mode:'generate'}),env);
+  assert.equal(unknown.status,400);
+  for(const [model,key] of [['gpt-image-2','image-2-secret'],['gpt-image-2.5-sunburst','image-2-5-secret']]){
+    const configured={...env,MUZE_API_KEY_IMAGE_2:'image-2-secret',MUZE_API_KEY_IMAGE_2_5:'image-2-5-secret'};
+    const response=await worker.fetch(post('/api/generate',{...base,builtinId:model,mode:'generate',params:{size:'1024x1024',quality:'standard',style:'vivid',n:1,response_format:'url'}}),configured);
+    assert.equal(response.status,200);
+    assert.equal(actual.options.headers.Authorization,`Bearer ${key}`);
+    assert.equal(JSON.parse(actual.options.body).model,model);
+    assert.equal(actual.url,'https://api.muzeai.top/v1/images/generations');
+    const edit=await worker.fetch(post('/api/generate',{...base,builtinId:model,mode:'edit',images:[{name:'ref.png',data:'data:image/png;base64,aGVsbG8='}],params:{}}),configured);
+    assert.equal(edit.status,200);
+    assert.equal(actual.url,'https://api.muzeai.top/v1/images/edits');
+    assert.equal(actual.options.headers.Authorization,`Bearer ${key}`);
+  }
+  const missing=await worker.fetch(post('/api/generate',{...base,builtinId:'gpt-image-2',mode:'generate'}),env);
+  assert.equal(missing.status,503);
 });

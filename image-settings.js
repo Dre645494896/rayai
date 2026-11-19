@@ -16,6 +16,16 @@ export function officialFields(model) {
   if(version==='2.6')fields.splice(2,0,{name:'complexity',type:'select',options:'low,medium,high',value:'high',modes:'both'});
   return fields;
 }
+export function builtinFields(model) {
+  if(!['gpt-image-2','gpt-image-2.5-sunburst'].includes(model))return officialFields(model);
+  return [
+    {name:'size',type:'text',options:'',value:'1024x1024',modes:'generate'},
+    {name:'quality',type:'text',options:'',value:'standard',modes:'generate'},
+    {name:'style',type:'text',options:'',value:'vivid',modes:'generate'},
+    {name:'n',type:'number',options:'',value:'1',modes:'generate'},
+    {name:'response_format',type:'select',options:'url',value:'url',modes:'generate'},
+  ];
+}
 export function sanitizeOutput(fields) {
   for(const field of fields||[]){if(field.name!=='output_format')continue;field.options=String(field.options||'').split(',').map(x=>x.trim()).filter(x=>x&&x!=='webp').join(',');if(field.value==='webp')field.value=field.options.split(',').includes('png')?'png':field.options.split(',')[0]||'';}
   return fields;
