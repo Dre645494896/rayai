@@ -2,6 +2,7 @@ import { chatStore } from './chat-store.js';
 import { RATIOS, TIERS, family, officialFields, builtinFields, sanitizeOutput, resolveSize } from './image-settings.js';
 import { apiFetch, rememberInvite } from './api-client.js';
 import { createBackup, readBackup } from './backup.js';
+import { startAurora } from './aurora.js';
 
 document.documentElement.dataset.appReady='true';
 
@@ -76,28 +77,30 @@ async function generate(override=null){if(busy)return;let body;const references=
   setSending(true);const origin=override?.origin||chat()||createChat(),originId=origin.id;const turn={id:crypto.randomUUID(),prompt:body.prompt,model:body.model,mode:body.mode,references:references.map(x=>({name:x.name,blob:x.blob})),images:[],status:'pending',error:'',aspectRatio:size.ratio,sizeLabel:size.label,createdAt:Date.now()};origin.turns.push(turn);if(origin.turns.length===1&&!origin.manualTitle)origin.title=body.prompt.slice(0,28)||'新聊天';origin.updatedAt=Date.now();renderChatList();if(chatId===originId)renderConversation();const saved=await persistChat(origin).then(()=>true,()=>false);if(!saved)turn.error='这轮对话尚未保存到浏览器。';if(!override){$('prompt').value='';uploads=[];renderUploads();}
   try{if(override&&requestMode==='edit')body.images=await Promise.all(references.map(async ref=>({name:ref.name,data:(await fileData(new File([ref.blob],ref.name||'reference.png',{type:ref.blob.type}))).data})));const response=await apiFetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const result=await response.json();if(!response.ok)throw Error(result.error||`请求失败：HTTP ${response.status}`);const blobs=[];for(const src of result.images){try{blobs.push(await imageBlob(src));}catch(error){temporaryImages.set(turn.id,result.images);turn.error=`图片已生成，但无法保存到浏览器：${error.message}`;break;}}if(blobs.length===result.images.length){turn.images=blobs;temporaryImages.delete(turn.id);}turn.status='done';}catch(error){turn.status='failed';turn.error=error.message;}finally{origin.updatedAt=Date.now();await persistChat(origin).catch(()=>{});renderChatList();if(chatId===originId)renderConversation();setSending(false);}}
 async function connectService(){
-  const screen=$('connection-screen'),retry=$('connection-retry'),status=$('connection-status'),phase=$('connection-phase');
+  const screen=$('connection-screen'),retry=$('connection-retry'),status=$('connection-status');
+  let stopAurora=()=>{};
+  try{stopAurora=startAurora($('connection-aurora'));}catch{ /* CSS fallback keeps loading usable. */ }
   let progress=0,wakeRetry=null,attempt=0;
-  const updateProgress=value=>{progress=value;$('connection-fill').style.width=`${value}%`;$('connection-percent').textContent=`${value}%`;$('connection-progress').setAttribute('aria-valuenow',String(value));};
+  const updateProgress=value=>{progress=Math.max(progress,Math.round(value));$('connection-percent').textContent=`${progress}%`;$('connection-percent').setAttribute('aria-valuenow',String(progress));};
   const started=Date.now();
-  const progressTimer=setInterval(()=>updateProgress(Math.max(progress,Math.min(95,Math.floor(95*(1-Math.exp(-(Date.now()-started)/12000)))))),120);
+  const progressTimer=setInterval(()=>{const elapsed=Date.now()-started;const target=elapsed<1600?90*(1-Math.pow(1-elapsed/1600,2)):90+5*(1-Math.exp(-(elapsed-1600)/12000));updateProgress(Math.min(95,target));},50);
+  const finishProgress=()=>new Promise(resolve=>{const from=progress,start=performance.now(),duration=420;const frame=now=>{const t=Math.min(1,(now-start)/duration);updateProgress(from+(100-from)*(1-Math.pow(1-t,3)));if(t<1)requestAnimationFrame(frame);else resolve();};requestAnimationFrame(frame);});
   const waitForRetry=delay=>new Promise(resolve=>{const done=()=>{clearTimeout(timer);wakeRetry=null;resolve();};const timer=setTimeout(done,delay);wakeRetry=done;});
   retry.onclick=()=>wakeRetry?.();
   try{
     for(;;){
       retry.hidden=true;
-      status.textContent=attempt?'正在重新连接生图服务…':'正在唤醒服务，请稍候…';
-      phase.textContent=attempt?'重新建立连接':'建立安全连接';
+      status.hidden=true;
+      status.textContent='';
       try{
         const response=await apiFetch('/api/session',{signal:AbortSignal.timeout(15000)});
         if(!response.ok)throw Error(`服务响应异常（HTTP ${response.status}）`);
         const state=await response.json();
         if(typeof state?.authenticated!=='boolean')throw Error('服务返回的数据无效');
+        await new Promise(resolve=>setTimeout(resolve,Math.max(0,2000-(Date.now()-started))));
         clearInterval(progressTimer);
-        updateProgress(100);
-        status.textContent='连接成功，即将进入 RayAI';
-        phase.textContent='连接已建立';
-        await new Promise(resolve=>setTimeout(resolve,450));
+        await finishProgress();
+        await new Promise(resolve=>setTimeout(resolve,180));
         screen.classList.add('connection-complete');
         await new Promise(resolve=>setTimeout(resolve,350));
         screen.hidden=true;
@@ -105,13 +108,14 @@ async function connectService(){
         return state;
       }catch(error){
         attempt++;
-        status.textContent=`暂时无法连接生图服务：${error.message}`;
-        phase.textContent='等待自动重试';
+        status.textContent='连接失败，请重试';
+        status.title=error.message;
+        status.hidden=false;
         retry.hidden=false;
         await waitForRetry(Math.min(3000*attempt,15000));
       }
     }
-  }finally{clearInterval(progressTimer);}
+  }finally{clearInterval(progressTimer);stopAurora();}
 }
 async function init(skipConnection=false){
   const state=skipConnection?{authenticated:true}:await connectService();
