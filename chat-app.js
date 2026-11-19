@@ -7,6 +7,29 @@ import { startAurora } from './aurora.js';
 document.documentElement.dataset.appReady='true';
 
 const $ = id => document.getElementById(id);
+
+// Border Glow: use the pointer's normalized distance from the center to
+// brighten the edge, and its angle to aim the conic mask.
+const glowComposer = document.querySelector('.composer-glow');
+const glowAllowed = matchMedia('(any-hover: hover) and (any-pointer: fine) and (prefers-reduced-motion: no-preference)');
+function clearComposerGlow() {
+  glowComposer.style.removeProperty('--edge-proximity');
+}
+glowComposer.addEventListener('pointermove', event => {
+  if (!glowAllowed.matches || event.pointerType === 'touch') return;
+  if (event.target.closest('#quick-params')) return clearComposerGlow();
+  const { left, top, width, height } = glowComposer.getBoundingClientRect();
+  if (!width || !height) return;
+  const dx = event.clientX - left - width / 2;
+  const dy = event.clientY - top - height / 2;
+  const proximity = Math.min(1, Math.max(2 * Math.abs(dx) / width, 2 * Math.abs(dy) / height));
+  const angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
+  glowComposer.style.setProperty('--edge-proximity', proximity.toFixed(3));
+  glowComposer.style.setProperty('--cursor-angle', `${angle.toFixed(2)}deg`);
+});
+glowComposer.addEventListener('pointerleave', clearComposerGlow);
+glowComposer.addEventListener('pointercancel', clearComposerGlow);
+glowAllowed.addEventListener('change', clearComposerGlow);
 const PROFILE_KEY = 'huashi-profiles-v1';
 const KEY_STORE = 'huashi-api-keys-v1';
 const PREF_KEY = 'huashi-image-preferences-v1';

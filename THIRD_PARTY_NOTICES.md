@@ -2,6 +2,10 @@
 
 The loading-screen Aurora shader in `aurora.js` is adapted from the
 [React Bits Aurora component](https://reactbits.dev/backgrounds/aurora).
+The chat composer's edge lighting in `chat-app.js` and `chat-v3.css` is
+adapted from [React Bits Border Glow](https://reactbits.dev/c/components/border-glow)
+([source revision](https://github.com/DavidHDev/react-bits/tree/fefc5b05ca34a7475b38a977127441fbfad2f177/src/content/Components/BorderGlow)).
+The license below applies to both adaptations.
 
 MIT + Commons Clause License Condition v1.0
 

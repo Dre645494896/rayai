@@ -66,3 +66,177 @@
 .connection-retry:hover,.connection-retry:focus-visible{background:#ffffff29;outline:2px solid #fff;outline-offset:3px}
 @media(max-width:600px){.connection-content{padding:18px}.connection-percent{font-size:clamp(52px,15vw,60px)}}
 @media(prefers-reduced-motion:reduce){.connection-screen{transition:none}.connection-aurora{display:none}}
+
+/* RayAI's dark palette, based on the React Bits preview surfaces. */
+:root {
+  --ray-bg: #0d0b11;
+  --ray-surface: #120f17;
+  --ray-panel: #1b1722;
+  --ray-control: #25202e;
+  --ray-hover: #373044;
+  --ray-border: #2f293a;
+  --ray-control-border: #6c6179;
+  --ray-text: #f5f5f5;
+  --ray-muted: #aaa;
+  --ray-accent: #c4b3dc;
+  --ray-accent-ink: #1c1328;
+  --ray-focus: #d3baf5;
+  background: var(--ray-bg);
+  color: var(--ray-text);
+}
+body { background: var(--ray-bg); color: var(--ray-text); }
+.chat-sidebar, .chat-header { background: var(--ray-surface); border-color: var(--ray-border); }
+.side-foot { border-color: var(--ray-border); }
+.side-caption, .side-foot, .welcome p, .chat-actions button, .pending-text,
+.viewer-toolbar, .viewer-zoom, .size-note { color: var(--ray-muted); }
+.side-brand, .welcome-mark, .answer-meta, .mode-hint,
+.chat-row.pinned .pin-chat, .image-frame .download-image { color: var(--ray-accent); }
+.side-brand strong, .chat-select { color: var(--ray-text); }
+.chat-row.active, .new-chat:hover, .chat-row:hover { background: var(--ray-hover); }
+.new-chat, .header-button, .icon-button, .toolbar-left select, .toolbar-button {
+  background: var(--ray-control);
+  color: var(--ray-text);
+  border-color: var(--ray-control-border);
+}
+.composer-wrap { background: var(--ray-bg); }
+.composer textarea { color: var(--ray-text); }
+.composer textarea::placeholder { color: var(--ray-muted); }
+.add-image, .attachment-card, .attachment-add, .user-bubble, .turn-images img {
+  background: var(--ray-control);
+  border-color: var(--ray-control-border);
+  color: var(--ray-text);
+}
+.attachment-add:hover, .attachment-add:focus-visible, .message-actions button:hover,
+.message-actions button:focus-visible, .account-menu button:hover,
+.account-menu button:focus-visible, .image-menu button:hover,
+.image-menu button:focus-visible { background: var(--ray-hover); }
+.message-actions button { color: var(--ray-accent); }
+.rename-input, .message-editor textarea, .message-editor button {
+  background: var(--ray-control);
+  border-color: var(--ray-control-border);
+  color: var(--ray-text);
+}
+.send-button, .invite-dialog button, .message-editor .confirm-edit, #model-dialog .primary {
+  background: var(--ray-accent);
+  color: var(--ray-accent-ink);
+  border-color: var(--ray-accent);
+  box-shadow: none;
+}
+.send-button:disabled { background: #5e526f; }
+.send-spinner { border-color: #f5f5f570; border-top-color: var(--ray-text); }
+:is(.app-shell, dialog) :focus-visible {
+  outline: 2px solid var(--ray-focus);
+  outline-offset: 2px;
+}
+.conversation, .composer .file-list, .composer .quick-params {
+  scrollbar-color: var(--ray-control-border) transparent;
+}
+.account-menu, .image-menu, .invite-dialog, #model-dialog, #confirm-dialog,
+.composer .quick-params {
+  background: var(--ray-panel);
+  border-color: var(--ray-control-border);
+  color: var(--ray-text);
+}
+.composer .quick-params .settings-heading { background: var(--ray-panel); }
+.settings-heading, .composer .quick-params .settings-heading::after, .setting-label,
+.setting-empty, .composer .quick-params label, #model-dialog label, #model-dialog .hint,
+#model-dialog .dialog-header p, #model-dialog .helper, #confirm-dialog p, .invite-dialog p {
+  color: var(--ray-muted);
+}
+.setting-options { background: var(--ray-control); }
+.setting-chip { color: var(--ray-text); }
+.setting-chip:hover { background: var(--ray-hover); }
+.setting-chip.selected { background: var(--ray-accent); color: var(--ray-accent-ink); }
+.composer .quick-params input, .composer .quick-params select, .invite-dialog input,
+#model-dialog label input, #model-dialog label select, #model-dialog .param input,
+#model-dialog .param select, #model-dialog .secondary, #confirm-dialog .secondary,
+.viewer-toolbar button {
+  background: var(--ray-control);
+  border-color: var(--ray-control-border);
+  color: var(--ray-text);
+}
+#model-dialog .advanced, #model-dialog .param, #model-dialog .request-preview {
+  border-color: var(--ray-border);
+  color: var(--ray-muted);
+}
+#model-dialog .request-preview pre { background: var(--ray-surface); color: var(--ray-text); }
+#model-dialog :is(.close-btn, .text-btn), #toggle-key { color: var(--ray-accent); }
+#delete-profile { color: #f1b8aa; }
+#model-dialog :is(input, select):focus { border-color: var(--ray-focus); box-shadow: none; }
+#image-viewer { background: var(--ray-surface); }
+#image-viewer::backdrop, .invite-dialog::backdrop, dialog::backdrop { background: #08060cd9; }
+.composer-wrap .message.ok { background: var(--ray-hover); color: var(--ray-text); }
+.generation-placeholder {
+  background: linear-gradient(145deg, var(--ray-control), var(--ray-hover) 52%, var(--ray-panel));
+  border-color: var(--ray-control-border);
+}
+.generation-placeholder::before {
+  background: linear-gradient(105deg, transparent 42%, #bfa6e136 49%, #f0e1fb7a 51%, #af9ecf32 54%, transparent 61%);
+}
+.generation-glow { background: radial-gradient(circle at 35% 50%, #c4b3dc29, transparent 58%); }
+.generation-placeholder span { color: var(--ray-text); text-shadow: 0 1px 8px var(--ray-bg); }
+
+/* Composer edge lighting adapted from React Bits Border Glow. */
+.composer.composer-glow {
+  --edge-proximity: 0;
+  --cursor-angle: 0deg;
+  isolation: isolate;
+  --glow-violet: #c084fc;
+  --glow-pink: #f472b6;
+  --glow-blue: #38bdf8;
+  --glow-gold: 40 80% 80%;
+  background: var(--ray-surface);
+  border-color: var(--ray-control-border);
+  box-shadow: 0 8px 24px #0003;
+}
+.composer.composer-glow:focus-within { border-color: var(--ray-focus); }
+.composer-edge-light { display: none; }
+
+@supports (mask-image: conic-gradient(black, transparent)) and (mask-composite: exclude) {
+  @media (any-hover: hover) and (any-pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .composer-edge-light {
+      display: block;
+      position: absolute;
+      --glow-outset: 36px;
+      inset: calc(-1px - var(--glow-outset));
+      border-radius: inherit;
+      pointer-events: none;
+      z-index: 1;
+      opacity: clamp(0, (var(--edge-proximity) - .38) / .62, 1);
+      transition: opacity .24s ease-out;
+      mask-image: conic-gradient(from var(--cursor-angle), #000 3%, transparent 14% 86%, #000 97%);
+    }
+    .composer-edge-light::before,
+    .composer-edge-light::after {
+      content: '';
+      position: absolute;
+      inset: var(--glow-outset);
+      border-radius: inherit;
+    }
+    .composer-edge-light::before {
+      box-shadow:
+        inset 0 0 3px hsl(var(--glow-gold) / 50%),
+        inset 0 0 6px hsl(var(--glow-gold) / 40%),
+        inset 0 0 15px hsl(var(--glow-gold) / 30%),
+        0 0 3px hsl(var(--glow-gold) / 50%),
+        0 0 6px hsl(var(--glow-gold) / 40%),
+        0 0 15px hsl(var(--glow-gold) / 30%),
+        0 0 25px 2px hsl(var(--glow-gold) / 20%);
+    }
+    .composer-edge-light::after {
+      padding: 1px;
+      background:
+        radial-gradient(at 80% 55%, var(--glow-violet) 0px, transparent 50%),
+        radial-gradient(at 69% 34%, var(--glow-pink) 0px, transparent 50%),
+        radial-gradient(at 8% 6%, var(--glow-blue) 0px, transparent 50%),
+        radial-gradient(at 41% 38%, var(--glow-violet) 0px, transparent 50%),
+        radial-gradient(at 86% 85%, var(--glow-pink) 0px, transparent 50%),
+        radial-gradient(at 82% 18%, var(--glow-blue) 0px, transparent 50%),
+        radial-gradient(at 51% 4%, var(--glow-pink) 0px, transparent 50%),
+        var(--glow-violet);
+      mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0);
+      mask-clip: content-box, border-box;
+      mask-composite: exclude;
+    }
+  }
+}
