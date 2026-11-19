@@ -76,17 +76,47 @@ async function generate(override=null){if(busy)return;let body;const references=
   const size=family(profile().model)&&profile().parameterSource!=='api'?resolveSize(effectiveLayout()):/^\d+x\d+$/.test(body.params.size||'')?(()=>{const [w,h]=body.params.size.split('x').map(Number);return {ratio:w/h,label:`${w} × ${h}`};})():{ratio:1,label:'自动尺寸'};
   setSending(true);const origin=override?.origin||chat()||createChat(),originId=origin.id;const turn={id:crypto.randomUUID(),prompt:body.prompt,model:body.model,mode:body.mode,references:references.map(x=>({name:x.name,blob:x.blob})),images:[],status:'pending',error:'',aspectRatio:size.ratio,sizeLabel:size.label,createdAt:Date.now()};origin.turns.push(turn);if(origin.turns.length===1&&!origin.manualTitle)origin.title=body.prompt.slice(0,28)||'新聊天';origin.updatedAt=Date.now();renderChatList();if(chatId===originId)renderConversation();const saved=await persistChat(origin).then(()=>true,()=>false);if(!saved)turn.error='这轮对话尚未保存到浏览器。';if(!override){$('prompt').value='';uploads=[];renderUploads();}
   try{if(override&&requestMode==='edit')body.images=await Promise.all(references.map(async ref=>({name:ref.name,data:(await fileData(new File([ref.blob],ref.name||'reference.png',{type:ref.blob.type}))).data})));const response=await apiFetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const result=await response.json();if(!response.ok)throw Error(result.error||`请求失败：HTTP ${response.status}`);const blobs=[];for(const src of result.images){try{blobs.push(await imageBlob(src));}catch(error){temporaryImages.set(turn.id,result.images);turn.error=`图片已生成，但无法保存到浏览器：${error.message}`;break;}}if(blobs.length===result.images.length){turn.images=blobs;temporaryImages.delete(turn.id);}turn.status='done';}catch(error){turn.status='failed';turn.error=error.message;}finally{origin.updatedAt=Date.now();await persistChat(origin).catch(()=>{});renderChatList();if(chatId===originId)renderConversation();setSending(false);}}
-async function init(){
-  notice('正在连接生图服务…');
-  let state;
+async function connectService(){
+  const screen=$('connection-screen'),retry=$('connection-retry'),status=$('connection-status'),phase=$('connection-phase');
+  let progress=0,wakeRetry=null,attempt=0;
+  const updateProgress=value=>{progress=value;$('connection-fill').style.width=`${value}%`;$('connection-percent').textContent=`${value}%`;$('connection-progress').setAttribute('aria-valuenow',String(value));};
+  const started=Date.now();
+  const progressTimer=setInterval(()=>updateProgress(Math.max(progress,Math.min(95,Math.floor(95*(1-Math.exp(-(Date.now()-started)/12000)))))),120);
+  const waitForRetry=delay=>new Promise(resolve=>{const done=()=>{clearTimeout(timer);wakeRetry=null;resolve();};const timer=setTimeout(done,delay);wakeRetry=done;});
+  retry.onclick=()=>wakeRetry?.();
   try{
-    for(let attempt=0;attempt<3;attempt++){
-      try{const response=await apiFetch('/api/session');state=await response.json();break;}
-      catch(error){if(attempt===2)throw error;await new Promise(resolve=>setTimeout(resolve,(attempt+1)*3000));}
+    for(;;){
+      retry.hidden=true;
+      status.textContent=attempt?'正在重新连接生图服务…':'正在唤醒服务，请稍候…';
+      phase.textContent=attempt?'重新建立连接':'建立安全连接';
+      try{
+        const response=await apiFetch('/api/session',{signal:AbortSignal.timeout(15000)});
+        if(!response.ok)throw Error(`服务响应异常（HTTP ${response.status}）`);
+        const state=await response.json();
+        if(typeof state?.authenticated!=='boolean')throw Error('服务返回的数据无效');
+        clearInterval(progressTimer);
+        updateProgress(100);
+        status.textContent='连接成功，即将进入 RayAI';
+        phase.textContent='连接已建立';
+        await new Promise(resolve=>setTimeout(resolve,450));
+        screen.classList.add('connection-complete');
+        await new Promise(resolve=>setTimeout(resolve,350));
+        screen.hidden=true;
+        document.querySelector('.app-shell').removeAttribute('inert');
+        return state;
+      }catch(error){
+        attempt++;
+        status.textContent=`暂时无法连接生图服务：${error.message}`;
+        phase.textContent='等待自动重试';
+        retry.hidden=false;
+        await waitForRetry(Math.min(3000*attempt,15000));
+      }
     }
-    notice('');
-    if(!state.authenticated){if(!$('invite-dialog').open)$('invite-dialog').showModal();return;}
-  }catch(error){notice(`连接生图服务失败：${error.message}`);return;}
+  }finally{clearInterval(progressTimer);}
+}
+async function init(skipConnection=false){
+  const state=skipConnection?{authenticated:true}:await connectService();
+  if(!state.authenticated){if(!$('invite-dialog').open)$('invite-dialog').showModal();return;}
   try{chats=await chatStore.list();for(const item of chats){if(!item.turns?.length){chatStore.remove(item.id).catch(()=>{});continue;}let changed=false;for(const turn of item.turns){if(turn.status==='pending'){turn.status='failed';turn.error='页面刷新时请求中断，请重新发送。';changed=true;}}if(changed)persistChat(item).catch(()=>{});}chats=chats.filter(c=>c.turns?.length);}catch(error){notice(`无法读取本地对话：${error.message}`);}if(!chats.length)newChat();else selectChat(chats.some(c=>c.id===localStorage.getItem(ACTIVE_CHAT_KEY))?localStorage.getItem(ACTIVE_CHAT_KEY):chats[0].id);renderProfiles();}
 
 $('new-chat').onclick=newChat;
@@ -106,7 +136,7 @@ function closeAccountMenu(){$('account-menu').hidden=true;$('account-toggle').se
 $('account-toggle').onclick=()=>{const menu=$('account-menu');menu.hidden=!menu.hidden;$('account-toggle').setAttribute('aria-expanded',String(!menu.hidden));};
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('.account-area'))closeAccountMenu();});
 $('invite-dialog').addEventListener('cancel',e=>e.preventDefault());
-$('invite-form').onsubmit=async e=>{e.preventDefault();const code=$('invite-code').value.trim();$('invite-error').textContent='';try{const response=await apiFetch('/api/invite',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});const data=await response.json();if(!response.ok)throw Error(data.error||'邀请码无效');rememberInvite(data);$('invite-code').value='';$('invite-dialog').close();await init();}catch(error){$('invite-error').textContent=error.message;}};
+$('invite-form').onsubmit=async e=>{e.preventDefault();const code=$('invite-code').value.trim();$('invite-error').textContent='';try{const response=await apiFetch('/api/invite',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});const data=await response.json();if(!response.ok)throw Error(data.error||'邀请码无效');rememberInvite(data);$('invite-code').value='';$('invite-dialog').close();await init(true);}catch(error){$('invite-error').textContent=error.message;}};
 $('close-dialog').onclick=()=>$('model-dialog').close();
 $('model-dialog').addEventListener('close',()=>{if(pendingProfile){profiles=profiles.filter(p=>p.id!==profileId);profileId=profiles[0].id;pendingProfile=false;renderProfiles();}});
 $('save-profile').onclick=saveProfile;$('read-params').onclick=readParams;
