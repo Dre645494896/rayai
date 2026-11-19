@@ -26,8 +26,8 @@ jobs:
       - run: npm run build:pages
         env:
           RAYAI_API_BASE_URL: ${{ vars.RAYAI_API_BASE_URL }}
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5.0.0
         with:
           path: dist/pages
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5.0.1
