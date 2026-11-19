@@ -16,6 +16,9 @@ test('线上页面与图标由 Worker 提供', async () => {
   assert.equal(icon.status, 200);
   assert.equal(icon.headers.get('content-type'), 'image/png');
   assert.ok((await icon.arrayBuffer()).byteLength > 1000);
+  const favicon = await worker.fetch(new Request('https://rayai.example/favicon.ico'));
+  assert.equal(favicon.status, 200);
+  assert.equal(favicon.headers.get('content-type'), 'image/x-icon');
 });
 
 test('线上文生图和带参考图请求转发到正确接口', async () => {

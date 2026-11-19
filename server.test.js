@@ -52,10 +52,11 @@ test('本地页面与 API 可访问', async () => {
     const page = await fetch(address);
     assert.equal(page.status, 200);
     assert.match(await page.text(), /RayAI/);
-    for(const asset of ['chat-app.js','image-settings.js','chat-v3.css','rayai-icon.png']){
+    for(const asset of ['chat-app.js','image-settings.js','chat-v3.css','rayai-icon.png','favicon.ico']){
       const response=await fetch(`${address}/${asset}`);
       assert.equal(response.status,200,`${asset} 应能被页面加载`);
       if(asset==='rayai-icon.png')assert.match(response.headers.get('content-type'),/^image\/png/);
+      if(asset==='favicon.ico')assert.match(response.headers.get('content-type'),/^image\/x-icon/);
     }
     assert.equal((await fetch(`${address}/missing.js`)).status,404);
     const response = await fetch(`${address}/api/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...base, mode: 'generate' }) });

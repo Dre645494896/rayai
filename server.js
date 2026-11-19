@@ -10,7 +10,7 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 const host = process.env.HOST || '127.0.0.1';
 const port = Number(process.env.PORT || 4173);
 const maxBody = 35 * 1024 * 1024;
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png' };
+const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
 
 function send(res, status, body, type = 'application/json; charset=utf-8') {
   res.writeHead(status, { 'Content-Type': type, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
@@ -152,7 +152,7 @@ export function createServer(fetcher = fetch, env = process.env) {
         return send(res, 200, bytes, type);
       }
       if (req.method !== 'GET') return send(res, 405, { error: '不支持的请求方法' });
-      if(pathname !== '/' && !/^\/[A-Za-z0-9][A-Za-z0-9.-]*\.(html|js|css|svg|png)$/.test(pathname)) return send(res, 404, { error: '未找到页面' });
+      if(pathname !== '/' && !/^\/[A-Za-z0-9][A-Za-z0-9.-]*\.(html|js|css|svg|png|ico)$/.test(pathname)) return send(res, 404, { error: '未找到页面' });
       const file = path.join(root, pathname === '/' ? 'index.html' : pathname.slice(1));
       return send(res, 200, await readFile(file), types[path.extname(file)]);
     } catch (error) { return send(res, error.status || (error.code === 'ENOENT' ? 404 : 500), { error: error.message }); }
