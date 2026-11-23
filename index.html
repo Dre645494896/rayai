@@ -1,9 +1,60 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>RayAI · AI创作平台</title><link rel="icon" type="image/png" href="./rayai-icon.png?v=2"><link rel="shortcut icon" type="image/x-icon" href="./favicon.ico?v=2"><link rel="apple-touch-icon" href="./rayai-icon.png?v=2"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./simple.css"><link rel="stylesheet" href="./chat.css"><link rel="stylesheet" href="./chat-v2.css"><link rel="stylesheet" href="./chat-v3.css"></head>
-<body><div class="app-shell" inert><aside id="sidebar" class="chat-sidebar"><div class="side-brand"><img class="brand-icon" src="./rayai-icon.png" alt=""><strong>RayAI</strong></div><button id="new-chat" class="new-chat" type="button"><svg class="sidebar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>新聊天</button><div class="side-caption">我的对话</div><nav id="chat-list" aria-label="对话列表"></nav><div class="side-foot">对话保存在当前浏览器</div></aside><div id="sidebar-shade" class="sidebar-shade" hidden></div>
-<main class="chat-main"><header class="chat-header"><button id="sidebar-toggle" class="icon-button" type="button" aria-label="打开对话列表" aria-controls="sidebar" aria-expanded="false"><svg class="sidebar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div id="chat-title" class="chat-title">新聊天</div><div class="account-area"><button id="account-toggle" class="header-button account-toggle" type="button" aria-label="用户菜单" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20c0-4 3.1-6.5 7.5-6.5s7.5 2.5 7.5 6.5"/></svg></button><div id="account-menu" class="account-menu" hidden><button id="new-profile" type="button">添加自定义模型</button><button id="export-backup" type="button">导出对话备份</button><button id="import-backup" type="button">导入对话备份</button><button id="login-entry" type="button">登录注册</button><input id="backup-file" type="file" accept=".json,application/json" hidden></div></div></header>
-<section id="conversation" class="conversation" aria-label="当前对话"><div id="welcome" class="welcome"><h1>想生成什么图片？</h1><p>描述画面，或添加参考图开始创作。</p></div><div id="turns" class="turns"></div></section>
-<div class="composer-wrap"><div id="message" class="message" role="status" hidden></div><div class="composer composer-glow"><span class="composer-edge-light" aria-hidden="true"></span><div id="file-list" class="file-list" aria-label="待发送的参考图" hidden></div><div class="composer-input"><button id="empty-add-image" class="add-image" type="button" aria-label="添加参考图" title="添加参考图">＋</button><textarea id="prompt" rows="3" placeholder="粘贴或上传参考图，描述你想生成的图片…"></textarea></div><input id="file-input" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden><div class="composer-toolbar"><div class="toolbar-left"><span id="mode-hint" class="mode-hint">图片生成</span><select id="profile-select" aria-label="使用模型"></select><button id="settings-toggle" class="toolbar-button" type="button" aria-controls="quick-params" aria-expanded="false">画面设置</button></div><button id="generate" class="send-button" type="button" aria-label="发送生成请求">↑</button></div><section id="quick-params" class="quick-params" aria-label="画面设置" inert></section></div></div>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>RayAI · AI创作平台</title><link rel="icon" type="image/png" href="./rayai-icon.png?v=2"><link rel="shortcut icon" type="image/x-icon" href="./favicon.ico?v=2"><link rel="apple-touch-icon" href="./rayai-icon.png?v=2"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./simple.css"><link rel="stylesheet" href="./chat.css"><link rel="stylesheet" href="./chat-v2.css"><link rel="stylesheet" href="./chat-v3.css"><link rel="stylesheet" href="./demo.css"><link rel="stylesheet" href="./demo-params.css"></head>
+<body><div class="app-shell" inert>
+<aside id="sidebar" class="chat-sidebar">
+  <div class="side-brand">
+    <span class="rail-brand-mark"><img class="brand-icon" src="./rayai-icon.png" alt=""></span><strong class="rail-label">RayAI</strong>
+    <button id="desktop-sidebar-toggle" class="rail-toggle" type="button" aria-controls="sidebar" aria-expanded="true" aria-label="收起侧栏"><svg class="sidebar-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16m4-3 3-3-3-3"/></svg></button>
+  </div>
+  <button id="new-chat" aria-label="新建对话" class="new-chat" type="button"><svg class="sidebar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="rail-label">新建对话</span></button>
+  <div class="side-caption rail-label">最近对话</div><nav id="chat-list" class="rail-label" aria-label="最近对话"></nav>
+  <div id="desktop-account"><div class="account-area">
+    <div class="wallet-control">
+      <button id="store-open" class="header-button demo-balance" type="button" aria-controls="wallet-popover" aria-expanded="false" aria-label="积分钱包 · 未开通"><svg class="sidebar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-9 12h7l-1 8 10-12h-7l1-8z"/></svg><span id="balance" class="balance-label" data-compact="—">— 积分</span></button>
+      <section id="wallet-popover" class="account-menu wallet-popover" aria-label="积分钱包" hidden>
+        <p class="wallet-total"><span>当前余额 · 未开通</span><strong id="popover-balance">—</strong></p>
+        <button id="wallet-buy" type="button" aria-haspopup="dialog" aria-controls="store-dialog">会员预览</button>
+        <button id="wallet-open-ledger" type="button" aria-haspopup="dialog" aria-controls="ledger-dialog">积分账本</button>
+      </section>
+    </div>
+    <div class="account-control">
+      <button id="account-toggle" class="header-button account-toggle" type="button" aria-label="用户菜单" aria-controls="account-menu" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20c0-4 3.1-6.5 7.5-6.5s7.5 2.5 7.5 6.5"/></svg></button>
+      <div id="account-menu" class="account-menu" hidden>
+        <button id="new-profile" type="button">添加自定义模型</button>
+        <button id="export-backup" type="button">导出对话备份</button>
+        <button id="import-backup" type="button">导入对话备份</button>
+        <button id="login-entry" type="button" aria-haspopup="dialog" aria-controls="account-dialog">登录注册</button>
+        <input id="backup-file" type="file" accept=".json,application/json" hidden>
+      </div>
+    </div>
+  </div></div>
+</aside><div id="sidebar-shade" class="sidebar-shade" hidden></div>
+<main class="chat-main">
+  <header class="chat-header">
+    <button id="sidebar-toggle" class="icon-button" type="button" aria-label="打开对话列表" aria-controls="sidebar" aria-expanded="false"><svg class="sidebar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    <div class="demo-mobile-brand"><strong>RayAI</strong></div><div id="chat-title" class="chat-title">新聊天</div><div id="mobile-account"></div>
+  </header>
+  <div class="chat-workspace is-empty">
+    <section id="conversation" class="conversation" aria-label="当前对话"><div id="welcome" class="welcome"><h1>想生成什么图片？</h1></div><div id="turns" class="turns"></div></section>
+    <div class="composer-wrap">
+      <div id="message" class="message" role="status" hidden></div>
+      <div class="composer composer-glow">
+        <span class="composer-edge-light" aria-hidden="true"></span>
+        <div id="file-list" class="file-list" aria-label="待发送的参考图" hidden></div>
+        <div class="composer-input"><button id="empty-add-image" class="add-image" type="button" aria-label="添加参考图" title="添加参考图">＋</button><textarea id="prompt" rows="3" aria-label="画面描述" placeholder="粘贴或上传参考图，描述你想生成的图片…"></textarea></div>
+        <input id="file-input" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
+        <div class="composer-toolbar">
+          <div class="toolbar-left">
+            <span id="mode-hint" class="mode-hint">图片生成</span>
+            <details id="profile-picker"><summary id="profile-trigger" class="toolbar-button" aria-label="使用模型"><span id="profile-label"></span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 10 4-4 4 4"/></svg></summary><div id="profile-select" role="group" aria-label="模型"></div></details>
+            <button id="settings-toggle" class="toolbar-button" type="button" aria-controls="quick-params" aria-expanded="false">画面设置</button>
+          </div>
+          <div class="demo-send"><span id="cost-line" class="demo-cost" aria-label="积分消耗未开通"><strong id="cost">—</strong> 积分</span><button id="generate" class="send-button" type="button" aria-label="发送生成请求" aria-describedby="cost-line">↑</button></div>
+        </div>
+        <section id="quick-params" class="quick-params" aria-label="画面设置" inert></section>
+      </div>
+    </div>
+  </div>
 <dialog id="model-dialog" aria-labelledby="dialog-title">
   <div class="dialog-header"><div><h2 id="dialog-title">添加自定义模型</h2><p>填写 API 信息，网站会尝试读取生图参数。</p></div><button id="close-dialog" class="close-btn" type="button" aria-label="关闭"><svg class="sidebar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
   <div class="fields">
@@ -21,6 +72,32 @@
   </div>
 </dialog>
 <dialog id="invite-dialog" class="invite-dialog" aria-label="内测邀请码"><h2>欢迎使用 RayAI</h2><p>请输入内测邀请码继续使用。</p><form id="invite-form"><input id="invite-code" type="password" autocomplete="off" placeholder="内测邀请码" required><button type="submit">进入网站</button></form><p id="invite-error" role="alert"></p></dialog>
+<dialog id="account-dialog" aria-labelledby="account-title" aria-describedby="account-message">
+  <div class="dialog-header"><div><h2 id="account-title">登录/注册</h2></div><button type="button" class="close-btn" data-close="account-dialog" aria-label="关闭账号窗口"><svg class="sidebar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+  <p id="account-message" class="message">账号功能未开通，仅供预览。</p>
+  <div id="auth-form">
+    <label for="email">邮箱</label><input id="email" type="email" placeholder="name@example.com" disabled>
+    <label for="password">密码</label><input id="password" type="password" disabled>
+    <button id="auth-submit" class="primary" type="button" disabled>未开通</button>
+  </div>
+  <div class="auth-footer"><button id="auth-topup" class="store-link" type="button" aria-haspopup="dialog" aria-controls="store-dialog">积分充值预览</button></div>
+</dialog>
+<dialog id="store-dialog" aria-labelledby="store-title" aria-describedby="store-message" data-view="membership">
+  <div class="store-tools">
+    <div class="dialog-header"><div><h2 id="store-title" tabindex="-1">会员预览</h2></div><button class="close-btn" type="button" data-close="store-dialog" aria-label="关闭会员与充值"><svg class="sidebar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+    <div class="store-wallet"><p class="store-balance">当前余额 <strong id="store-balance">—</strong></p><button id="wallet-ledger" class="store-link" type="button" aria-haspopup="dialog" aria-controls="ledger-dialog">积分明细</button></div>
+    <p id="store-message">仅供预览，会员和充值尚未开通。</p>
+  </div>
+  <div class="store-offers">
+    <div id="store-cards" class="store-cards"></div>
+    <div class="store-footer"><button id="store-back" class="secondary" type="button" hidden>返回会员预览</button><button id="store-topup" class="store-link" type="button">积分充值预览</button></div>
+  </div>
+</dialog>
+<dialog id="ledger-dialog" class="ledger-dialog" aria-labelledby="ledger-title" aria-describedby="ledger-note">
+  <div class="dialog-header"><div><h2 id="ledger-title">积分账本</h2></div><button type="button" class="close-btn" data-close="ledger-dialog" aria-label="关闭积分账本"><svg class="sidebar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+  <div class="ledger-total"><span>当前余额</span><strong id="ledger-balance">—</strong><span>积分</span></div>
+  <p id="ledger-note" class="message">积分功能未开通，暂无账本记录。</p>
+</dialog>
 <dialog id="confirm-dialog"><h2>删除这个对话？</h2><p>对话中的文字和图片也会从当前浏览器删除。</p><div class="confirm-actions"><button id="cancel-delete" class="secondary">取消</button><button id="confirm-delete" class="danger">删除对话</button></div></dialog>
 <dialog id="image-viewer" aria-label="查看生成图片"><div class="viewer-toolbar"><span class="viewer-desktop-hint">滚轮缩放 · 放大后按住左键或右键拖动 · 右键单击打开菜单</span><span class="viewer-mobile-hint">点击空白处关闭</span><div><button id="viewer-reset" type="button">重置大小</button><button id="viewer-close" type="button" aria-label="关闭图片">×</button></div></div><div id="viewer-stage" class="viewer-stage"><img id="viewer-image" alt="放大的生成图片"></div><div id="viewer-zoom" class="viewer-zoom">100%</div></dialog><div id="image-menu" class="image-menu" role="menu" hidden><button type="button" data-action="download" role="menuitem">下载图片</button><button type="button" data-action="copy" role="menuitem">复制图片</button><button type="button" data-action="attach" role="menuitem">添加图片到对话</button></div>
 </main></div>

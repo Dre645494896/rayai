@@ -3,6 +3,7 @@ import { RATIOS, TIERS, family, officialFields, builtinFields, sanitizeOutput, r
 import { apiFetch, rememberInvite } from './api-client.js';
 import { createBackup, readBackup } from './backup.js';
 import { startAurora } from './aurora.js';
+import { closeAccountMenu, closeSidebarPopovers } from './production-wallet.js';
 
 document.documentElement.dataset.appReady='true';
 
@@ -69,14 +70,50 @@ function persistChat(item){const snapshot=structuredClone(item);saveQueue=saveQu
 function createChat(){const now=Date.now();const item={id:crypto.randomUUID(),title:'新聊天',manualTitle:false,pinned:false,createdAt:now,updatedAt:now,turns:[]};chats.unshift(item);chatId=item.id;localStorage.setItem(ACTIVE_CHAT_KEY,item.id);return item;}
 function newChat(){chatId=null;localStorage.removeItem(ACTIVE_CHAT_KEY);$('prompt').value='';uploads=[];renderUploads();notice('');renderChatList();renderConversation();closeSidebar();}
 function selectChat(id,refreshList=true){chatId=id;localStorage.setItem(ACTIVE_CHAT_KEY,id);if(refreshList)renderChatList();else updateChatSelection();renderConversation();closeSidebar();}
+const mobileSidebar = matchMedia('(max-width: 760px)');
+const railStorageKey = 'rayai-sidebar-collapsed-v1';
+function setRailCollapsed(collapsed) {
+  document.body.classList.toggle('rail-collapsed', collapsed);
+  const button = $('desktop-sidebar-toggle');
+  button.setAttribute('aria-expanded', String(!collapsed));
+  button.setAttribute('aria-label', collapsed ? '展开侧栏' : '收起侧栏');
+  const hideList = !mobileSidebar.matches && collapsed;
+  if (hideList) {
+    if ($('chat-list').contains(document.activeElement)) button.focus({preventScroll:true});
+    closeHistoryActions();
+  }
+  $('chat-list').inert = hideList;
+}
+function syncSidebarLayout() {
+  if (!mobileSidebar.matches) closeSidebar();
+  const area = document.querySelector('.account-area');
+  const destination = $(mobileSidebar.matches ? 'mobile-account' : 'desktop-account');
+  closeHistoryActions();
+  if (area.parentElement !== destination) {
+    const focused = area.contains(document.activeElement) ? document.activeElement : null;
+    closeSidebarPopovers();
+    destination.append(area);
+    if (focused) $('wallet-popover').contains(focused) || focused === $('store-open')
+      ? $('store-open').focus({preventScroll:true}) : $('account-toggle').focus({preventScroll:true});
+  }
+  const drawerClosed = mobileSidebar.matches && !document.body.classList.contains('sidebar-open');
+  if (drawerClosed && $('sidebar').contains(document.activeElement)) $('sidebar-toggle').focus({preventScroll:true});
+  $('sidebar').inert = drawerClosed;
+  setRailCollapsed(localStorage.getItem(railStorageKey) === 'true');
+}
 function setSidebar(open){
   const toggle=$('sidebar-toggle');
+  const sidebar=$('sidebar');
+  const restoreFocus=!open && sidebar.contains(document.activeElement);
+  if (open) closeSidebarPopovers();
+  else closeHistoryActions();
   document.body.classList.toggle('sidebar-open',open);
   $('sidebar-shade').hidden=!open;
   toggle.setAttribute('aria-expanded',String(open));
   toggle.setAttribute('aria-label',open?'关闭对话列表':'打开对话列表');
+  sidebar.inert = mobileSidebar.matches && !open;
   if(open)$('new-chat').focus({preventScroll:true});
-  else if($('sidebar').contains(document.activeElement)&&toggle.getClientRects().length)toggle.focus({preventScroll:true});
+  else if(restoreFocus)(mobileSidebar.matches ? toggle : $('desktop-sidebar-toggle')).focus({preventScroll:true});
 }
 function closeSidebar(){if(document.body.classList.contains('sidebar-open'))setSidebar(false);}
 function updateChatSelection(){
@@ -87,18 +124,52 @@ function updateChatSelection(){
   }
 }
 const rowIcons={pin:'M16 3l5 5-4 2-2 5-2 2-6-6 2-2 5-2 2-4ZM10 14l-6 6',rename:'m4 20 4.5-1 10-10-3.5-3.5L4 16v4ZM13.5 7.5l3 3M15 5.5 17.5 3 21 6.5 18.5 9',remove:'M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 10v7m4-7v7'};
-function chatAction(icon,label,item,activate){
+let historyActions;
+function closeHistoryActions(restoreFocus=false){
+  if(!historyActions)return;
+  const {trigger,panel}=historyActions;
+  historyActions=null;
+  panel.hidePopover?.();
+  panel.hidden=true;
+  trigger.setAttribute('aria-expanded','false');
+  if(restoreFocus)trigger.focus({preventScroll:true});
+}
+function openHistoryActions(trigger,panel){
+  const opening=historyActions?.trigger!==trigger;
+  closeHistoryActions(!opening);
+  if(!opening)return;
+  if (!panel.showPopover) panel.removeAttribute('popover');
+  panel.hidden=false;
+  panel.showPopover?.();
+  historyActions={trigger,panel};
+  trigger.setAttribute('aria-expanded','true');
+  const anchor=trigger.getBoundingClientRect(), box=panel.getBoundingClientRect();
+  panel.style.left=`${Math.max(8,Math.min(anchor.right-box.width,innerWidth-box.width-8))}px`;
+  panel.style.top=`${Math.max(8,Math.min(anchor.bottom+box.height+12<=innerHeight ? anchor.bottom+4 : anchor.top-box.height-4,innerHeight-box.height-8))}px`;
+  panel.querySelector('button').focus({preventScroll:true});
+}
+function chatAction(icon,label,activate){
   const button=document.createElement('button');
   button.type='button';
   button.className=`chat-action ${icon}-chat`;
   button.innerHTML=`<svg class="sidebar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="${rowIcons[icon]}"/></svg>`;
-  button.title=label;
-  button.setAttribute('aria-label',`${label}：${item.title}`);
+  button.append(label);
   button.onclick=activate;
   return button;
 }
+const findChatRow=id=>[...$('chat-list').children].find(row=>row.dataset.id===id);
+function restoreChatFocus(id, selector='.chat-more') {
+  const list=$('chat-list');
+  if(list.inert || $('sidebar').inert)return;
+  (findChatRow(id)?.querySelector(selector) || list.querySelector('.chat-more') || $('new-chat')).focus({preventScroll:true});
+}
 function renderChatList(){
   const list=$('chat-list');
+  const focused=document.activeElement;
+  const focusedRow=focused.closest('.chat-row');
+  const restoreId=historyActions?.panel.contains(focused) ? historyActions.trigger.closest('.chat-row').dataset.id : focusedRow?.dataset.id;
+  const restoreTarget=focused.matches('.chat-select') ? '.chat-select' : '.chat-more';
+  closeHistoryActions();
   list.replaceChildren();
   for(const item of [...chats].filter(c=>c.turns?.length).sort((a,b)=>Number(!!b.pinned)-Number(!!a.pinned)||b.updatedAt-a.updatedAt)){
     const row=document.createElement('div');
@@ -108,32 +179,81 @@ function renderChatList(){
     select.type='button';
     select.className='chat-select';
     select.textContent=item.title;
+    if(item.pinned)select.setAttribute('aria-label',`${item.title}，已置顶`);
     select.title=item.title;
     select.onclick=()=>selectChat(item.id,false);
+    const more=document.createElement('button');
+    more.type='button';
+    more.className='chat-more';
+    more.innerHTML='<svg class="sidebar-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h.01m6.99 0h.01m6.99 0h.01" stroke-width="3"/></svg>';
+    more.title='对话操作';
+    more.setAttribute('aria-label',`对话操作：${item.title}`);
+    more.setAttribute('aria-expanded','false');
     const actions=document.createElement('div');
     actions.className='chat-actions';
-    const pin=chatAction('pin',item.pinned?'取消置顶':'置顶',item,()=>{
+    actions.id=`chat-actions-${item.id}`;
+    actions.setAttribute('popover','manual');
+    actions.hidden=true;
+    more.setAttribute('aria-controls',actions.id);
+    more.onclick=()=>openHistoryActions(more,actions);
+    const pin=chatAction('pin',item.pinned?'取消置顶':'置顶',()=>{
+      closeHistoryActions(true);
       item.pinned=!item.pinned;
       persistChat(item).catch(()=>{});
       renderChatList();
-      [...list.children].find(el=>el.dataset.id===item.id)?.querySelector('.pin-chat')?.focus({preventScroll:true});
     });
-    pin.setAttribute('aria-pressed',String(!!item.pinned));
-    const rename=chatAction('rename','重命名',item,()=>renameChat(item));
-    const remove=chatAction('remove','删除',item,()=>{pendingDelete=item.id;$('confirm-dialog').showModal();});
+    const rename=chatAction('rename','重命名',()=>{closeHistoryActions(true);renameChat(item);});
+    const remove=chatAction('remove','删除',()=>{closeHistoryActions(true);pendingDelete=item.id;$('confirm-dialog').showModal();});
     actions.append(pin,rename,remove);
-    row.append(select,actions);
+    row.append(select,more,actions);
     list.append(row);
   }
+  if (!list.children.length) {
+    const empty = document.createElement('p');
+    empty.className = 'rail-empty';
+    empty.textContent = '暂无对话';
+    list.append(empty);
+  }
   updateChatSelection();
+  if(restoreId)restoreChatFocus(restoreId,restoreTarget);
 }
-function renameChat(item){const row=[...$('chat-list').children].find(el=>el.dataset.id===item.id);const input=document.createElement('input');input.className='rename-input';input.value=item.title;const target=row?.querySelector('.chat-select');if(!target)return;target.replaceWith(input);input.focus();input.select();let done=false;const finish=save=>{if(done)return;done=true;const value=input.value.trim();if(save&&value){item.title=value;item.manualTitle=true;item.updatedAt=Date.now();persistChat(item).catch(()=>{});}renderChatList();renderConversation();};input.onkeydown=e=>{if(e.key==='Enter')finish(true);if(e.key==='Escape')finish(false);};input.onblur=()=>finish(true);}
+function renameChat(item){
+  const row=findChatRow(item.id), target=row?.querySelector('.chat-select');
+  if(!target)return;
+  const input=document.createElement('input');
+  input.className='rename-input';
+  input.value=item.title;
+  input.setAttribute('aria-label','重命名对话');
+  target.replaceWith(input);
+  input.focus();
+  input.select();
+  let done=false;
+  const finish=(save,restoreFocus=false)=>{
+    if(done)return;
+    done=true;
+    const value=input.value.trim();
+    if(save&&value&&value!==item.title){
+      item.title=value;item.manualTitle=true;item.updatedAt=Date.now();persistChat(item).catch(()=>{});
+      target.textContent=value;target.title=value;
+      if(item.pinned)target.setAttribute('aria-label',`${value}，已置顶`);
+      row.querySelector('.chat-more').setAttribute('aria-label',`对话操作：${value}`);
+      renderConversation();
+    }
+    input.replaceWith(target);
+    if(restoreFocus){row.querySelector('.chat-more').focus({preventScroll:true});renderChatList();}
+  };
+  input.onkeydown=e=>{
+    if(e.isComposing||!['Enter','Escape'].includes(e.key))return;
+    e.preventDefault();e.stopPropagation();finish(e.key==='Enter',true);
+  };
+  input.onblur=()=>finish(true);
+}
 function assetUrl(blob){const url=URL.createObjectURL(blob);renderedUrls.push(url);return url;}
 function imageElement(blobOrUrl,alt){const src=blobOrUrl instanceof Blob?assetUrl(blobOrUrl):blobOrUrl;const image=document.createElement('img');image.src=src;image.alt=alt;image.tabIndex=0;image.setAttribute('role','button');image.setAttribute('aria-label',`放大查看${alt}`);const open=()=>openViewer(blobOrUrl,alt);image.onclick=open;image.oncontextmenu=e=>showImageMenu(e,blobOrUrl);image.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}};return image;}
 function renderConversation(){for(const url of renderedUrls)URL.revokeObjectURL(url);renderedUrls=[];const item=chat();$('chat-title').textContent=item?.title||'新聊天';const container=$('turns');container.replaceChildren();$('welcome').hidden=!!item?.turns.length;if(!item)return;for(const turn of item.turns){const group=document.createElement('article');group.className='turn';const user=document.createElement('div');user.className='user-bubble';const text=document.createElement('p');text.textContent=turn.prompt;user.append(text);if(turn.references?.length){const refs=document.createElement('div');refs.className='turn-images refs';for(const ref of turn.references)refs.append(imageElement(ref.blob,ref.name||'参考图'));user.append(refs);}group.append(user);const answer=document.createElement('div');answer.className='assistant-bubble';const meta=document.createElement('div');meta.className='answer-meta';meta.textContent=turn.model||'图片生成';answer.append(meta);if(turn.status==='pending'){const placeholder=document.createElement('div');placeholder.className='generation-placeholder';const aspect=turn.aspectRatio||1;placeholder.style.aspectRatio=String(aspect);placeholder.style.width=`min(${Math.min(360,Math.round(320*aspect))}px, 100%)`;const glow=document.createElement('div');glow.className='generation-glow';placeholder.append(glow);const label=document.createElement('span');label.textContent=turn.sizeLabel==='自动尺寸'?'自动尺寸 · 正在生成':'正在生成图片';placeholder.append(label);answer.append(placeholder);}if(turn.images?.length||temporaryImages.has(turn.id)){const grid=document.createElement('div');grid.className='turn-images results-images';const images=turn.images?.length?turn.images:temporaryImages.get(turn.id);for(const blobOrUrl of images){const frame=document.createElement('div');frame.className='image-frame';frame.append(imageElement(blobOrUrl,'生成图片'));const download=document.createElement('button');download.className='download-image';download.textContent='下载图片';download.onclick=()=>downloadImage(blobOrUrl);frame.append(download);grid.append(frame);}answer.append(grid);}if(turn.error){const p=document.createElement('p');p.className='turn-error';p.textContent=turn.error;answer.append(p);}group.append(answer);container.append(group);}container.lastElementChild?.scrollIntoView({block:'end'});}
 function renderTurnActions(){const item=chat();if(!item)return;[...$('turns').children].forEach((group,index)=>{const turn=item.turns[index],user=group.querySelector('.user-bubble');if(!turn||!user)return;const actions=document.createElement('div');actions.className='message-actions';const copy=document.createElement('button');copy.type='button';copy.title='复制提示词';copy.setAttribute('aria-label','复制提示词');copy.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>';copy.onclick=async()=>{try{await navigator.clipboard.writeText(turn.prompt);notice('提示词已复制。',true,true);}catch(error){notice(`复制失败：${error.message}`);}};const edit=document.createElement('button');edit.type='button';edit.title='修改并重新生成';edit.setAttribute('aria-label','修改并重新生成');edit.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.5-1 10-10-3.5-3.5-10 10L4 20Z"/><path d="m13.5 7.5 3.5 3.5M14 4.5l2-2a2 2 0 0 1 3 0l2.5 2.5a2 2 0 0 1 0 3l-2 2"/></svg>';edit.onclick=()=>{const old=user.querySelector('.message-editor');if(old){old.remove();return;}const editor=document.createElement('div');editor.className='message-editor';const input=document.createElement('textarea');input.value=turn.prompt;input.setAttribute('aria-label','修改提示词');const row=document.createElement('div');const cancel=document.createElement('button');cancel.textContent='取消';cancel.onclick=()=>editor.remove();const confirm=document.createElement('button');confirm.textContent='确认并生成';confirm.className='confirm-edit';confirm.onclick=async()=>{if(busy){notice('请等待当前图片生成完成。');return;}const prompt=input.value.trim();if(!prompt){notice('请输入画面描述。');return;}await generate({prompt,references:turn.references||[],origin:item});};row.append(cancel,confirm);editor.append(input,row);user.append(editor);input.focus();input.select();};actions.append(copy,edit);user.append(actions);});}
 const baseRenderConversation=renderConversation;
-renderConversation=()=>{baseRenderConversation();renderTurnActions();};
+renderConversation=()=>{document.querySelector('.chat-workspace').classList.toggle('is-empty', !chat()?.turns.length);baseRenderConversation();renderTurnActions();};
 function downloadImage(blobOrUrl){const src=blobOrUrl instanceof Blob?URL.createObjectURL(blobOrUrl):blobOrUrl;const link=document.createElement('a');link.href=src;link.download=`rayai-${Date.now()}.${blobOrUrl instanceof Blob?(blobOrUrl.type.split('/')[1]||'png'):'png'}`;link.click();if(blobOrUrl instanceof Blob)setTimeout(()=>URL.revokeObjectURL(src),30000);}
 function closeImageMenu(){$('image-menu').hidden=true;contextImage=null;}
 function showImageMenu(event,source){event.preventDefault();event.stopPropagation();contextImage=source;const menu=$('image-menu');( $('image-viewer').open ? $('image-viewer') : document.body ).append(menu);menu.hidden=false;const rect=menu.getBoundingClientRect();menu.style.left=`${Math.max(8,Math.min(event.clientX,innerWidth-rect.width-8))}px`;menu.style.top=`${Math.max(8,Math.min(event.clientY,innerHeight-rect.height-8))}px`;}
@@ -143,8 +263,25 @@ function renderViewer(){const image=$('viewer-image'),stage=$('viewer-stage');co
 function setViewerScale(value){viewerScale=Math.min(5,Math.max(.25,value));if(viewerScale===1){viewerOffsetX=0;viewerOffsetY=0;}renderViewer();}
 function stopViewerPan(){if(!viewerPan)return;const pointerId=viewerPan.pointerId;viewerPan=null;$('viewer-stage').classList.remove('panning');if($('viewer-stage').hasPointerCapture(pointerId))$('viewer-stage').releasePointerCapture(pointerId);}
 function openViewer(blobOrUrl,alt){closeImageMenu();if(viewerUrl)URL.revokeObjectURL(viewerUrl);viewerSource=blobOrUrl;viewerUrl=blobOrUrl instanceof Blob?URL.createObjectURL(blobOrUrl):null;$('viewer-image').src=viewerUrl||blobOrUrl;$('viewer-image').alt=alt;viewerOffsetX=0;viewerOffsetY=0;viewerScale=1;$('image-viewer').showModal();renderViewer();}
-function renderProfiles(){localStorage.setItem(ACTIVE_PROFILE_KEY,profileId);const select=$('profile-select');select.replaceChildren(...profiles.map(p=>{const option=document.createElement('option');option.value=p.id;option.textContent=(p.model||'新模型')+(p.builtIn?' · 内置':'');return option;}));select.value=profileId;$('model').value=profile().builtIn?'':profile().model;$('base-url').value=profile().builtIn?'':profile().baseUrl;$('api-key').value=profile().builtIn?'':sessionKeys.get(profileId)||'';renderQuickParams();renderFields();updatePreview();}
+function renderProfiles(){localStorage.setItem(ACTIVE_PROFILE_KEY,profileId);const select=$('profile-select');$('profile-label').textContent=profile().model;$('profile-trigger').setAttribute('aria-label',`使用模型：${profile().model}`);select.replaceChildren(...profiles.map(p=>{const option=document.createElement('button');option.type='button';option.dataset.model=p.id;option.textContent=p.model||'新模型';option.setAttribute('aria-pressed',String(p.id===profileId));return option;}));$('model').value=profile().builtIn?'':profile().model;$('base-url').value=profile().builtIn?'':profile().baseUrl;$('api-key').value=profile().builtIn?'':sessionKeys.get(profileId)||'';renderQuickParams();renderFields();updatePreview();}
 function settingGroup(label){const group=document.createElement('div');group.className='setting-group';const heading=document.createElement('div');heading.className='setting-label';heading.textContent=label;group.append(heading);return group;}
+function ratioIcon(ratio) {
+  const icon=document.createElement('span');
+  icon.className='ratio-icon';
+  icon.setAttribute('aria-hidden','true');
+  const [w,h]=ratio.split(':').map(Number);
+  const scale=16/Math.max(w,h);
+  if(w&&h){icon.style.setProperty('--ratio-w',`${Math.max(7,w*scale)}px`);icon.style.setProperty('--ratio-h',`${Math.max(7,h*scale)}px`);}
+  else icon.dataset.kind=ratio;
+  return icon;
+}
+function updateSettingsSummary() {
+  const layout=effectiveLayout(), size=resolveSize(layout);
+  const text=layout.ratio==='auto'?'自动':layout.ratio==='custom'?(size.error?'自定义':`${layout.width} × ${layout.height}`):`${layout.ratio} · ${{standard:'标准','2k':'2K','4k':'4K'}[layout.tier]}`;
+  const trigger=$('settings-toggle');
+  trigger.replaceChildren(ratioIcon(layout.ratio),document.createTextNode(text));
+  trigger.setAttribute('aria-label',`画面设置：${text}`);
+}
 function chipRow(values,current,onPick,disabled=()=>false){const row=document.createElement('div');row.className='setting-options';for(const value of values){const button=document.createElement('button');button.type='button';button.className='setting-chip'+(current===value?' selected':'');button.textContent=value==='standard'?'标准':value==='2k'?'2K':value==='4k'?'4K':value==='auto'?'自动':value==='custom'?'自定义':value;button.disabled=disabled(value);button.setAttribute('aria-pressed',String(current===value));button.onclick=()=>{
     const groups=[...$('quick-params').querySelectorAll('.setting-options')];
     const groupIndex=groups.indexOf(row), optionIndex=[...row.children].indexOf(button);
@@ -152,8 +289,53 @@ function chipRow(values,current,onPick,disabled=()=>false){const row=document.cr
     onPick(value);
     if(restoreFocus&&!button.isConnected)$('quick-params').querySelectorAll('.setting-options')[groupIndex]?.children[optionIndex]?.focus({preventScroll:true});
   };row.append(button);}return row;}
-function renderLayoutSettings(wrap){const layout=effectiveLayout();const ratio=settingGroup('画面比例');ratio.append(chipRow(RATIOS,layout.ratio,value=>{preferences.layout={...layout,ratio:value};savePreferences();renderQuickParams();updatePreview();}));wrap.append(ratio);const tier=settingGroup('分辨率');tier.append(chipRow(TIERS,layout.tier,value=>{preferences.layout={...layout,tier:value};savePreferences();renderQuickParams();updatePreview();},value=>layout.ratio==='custom'||layout.ratio==='auto'||!!resolveSize({...layout,tier:value}).error));wrap.append(tier);if(layout.ratio==='custom'){const custom=settingGroup('自定义尺寸');const line=document.createElement('div');line.className='custom-size';for(const key of ['width','height']){const input=document.createElement('input');input.type='number';input.min='16';input.max='3840';input.step='16';input.placeholder=key==='width'?'宽 W':'高 H';input.value=layout[key]||'';input.onchange=()=>{preferences.layout={...preferences.layout,[key]:input.value};savePreferences();renderQuickParams();updatePreview();};line.append(input);}custom.append(line);wrap.append(custom);}const size=resolveSize(layout);const note=document.createElement('p');note.className='size-note';note.textContent=size.error?size.error:`实际发送：size = ${size.size}${layout.ratio==='auto'?'（最终比例由模型决定）':''}`;wrap.append(note);}
-function renderQuickParams(){const wrap=$('quick-params');wrap.replaceChildren();const p=profile(),flexible=!!family(p.model)&&p.parameterSource!=='api';const fields=p.fields.filter(f=>f.name&&(f.modes==='both'||f.modes===mode())&&!(flexible&&f.name==='size'));const title=document.createElement('div');title.className='settings-heading';title.textContent='画面设置 · '+p.model;wrap.append(title);if(flexible)renderLayoutSettings(wrap);for(const field of fields){const group=settingGroup(({aspect_ratio:'画面比例',resolution:'分辨率',size:'图片尺寸',quality:'画质',complexity:'细节程度',output_format:'文件格式',style:'画风',n:'生成数量',response_format:'返回格式'})[field.name]||field.name);const options=field.type==='select'?String(field.options||'').split(',').map(x=>x.trim()).filter(Boolean):[];const current=effectiveFieldValue(field);if(options.length){group.append(chipRow(options,current,value=>{field.value=value;rememberField(field);saveProfiles();renderQuickParams();updatePreview();}));}else{const input=document.createElement('input');input.className='setting-input';input.type=field.type==='number'?'number':'text';if(field.name==='n'){input.min='1';input.max='10';input.step='1';}input.value=current||'';input.placeholder='按接口要求填写；留空不发送';input.onchange=()=>{field.value=input.value;rememberField(field);saveProfiles();updatePreview();};group.append(input);}wrap.append(group);}if(!flexible&&!fields.length){const empty=document.createElement('p');empty.className='setting-empty';empty.textContent='这个模型没有公开可读取的画面参数。';wrap.append(empty);}}
+function renderLayoutSettings(wrap) {
+  const layout = effectiveLayout();
+  const pick = patch => { preferences.layout = {...layout, ...patch}; savePreferences(); renderQuickParams(); updatePreview(); };
+  const ratio = settingGroup('画面比例');
+  const ratios=chipRow(RATIOS, layout.ratio, value => pick({ratio:value}));
+  ratios.classList.add('ratio-options');
+  [...ratios.children].forEach((button,index)=>button.prepend(ratioIcon(RATIOS[index])));
+  ratio.append(ratios);
+  wrap.append(ratio);
+  const tier = settingGroup('分辨率');
+  const resolutions=chipRow(TIERS, layout.ratio==='auto'||layout.ratio==='custom'?null:layout.tier, value => pick({tier:value}), value => layout.ratio==='custom'||layout.ratio==='auto'||!!resolveSize({...layout,tier:value}).error);
+  resolutions.classList.add('resolution-options');
+  tier.append(resolutions);
+  wrap.append(tier);
+  const note = document.createElement('p');
+  note.className = 'size-note';
+  const updateSize = () => {
+    const size = resolveSize(effectiveLayout());
+    note.textContent = size.error || (size.size==='auto' ? '自动' : `${size.label} px`);
+    note.hidden = layout.ratio==='custom' && !size.error;
+    note.dataset.invalid = String(Boolean(size.error));
+    updateSettingsSummary();
+  };
+  if (layout.ratio==='custom') {
+    const custom = settingGroup('自定义尺寸');
+    const line = document.createElement('div');
+    line.className = 'custom-size';
+    for (const key of ['width', 'height']) {
+      const input = document.createElement('input');
+      input.type = 'number'; input.min = '16'; input.max = '3840'; input.step = '16';
+      input.placeholder = key==='width'?'宽 W':'高 H';
+      input.setAttribute('aria-label', key==='width'?'宽度（像素）':'高度（像素）');
+      input.value = layout[key] || '';
+      input.oninput = () => {
+        preferences.layout = {...preferences.layout,[key]:input.value};
+        savePreferences(); updateSize(); updatePreview();
+      };
+      line.append(input);
+    }
+    custom.append(line,note); wrap.append(custom);
+  } else {
+    const dimensions=settingGroup('尺寸');
+    dimensions.append(note); wrap.append(dimensions);
+  }
+  updateSize();
+}
+function renderQuickParams(){const wrap=$('quick-params');wrap.replaceChildren();const p=profile(),flexible=!!family(p.model)&&p.parameterSource!=='api';const fields=p.fields.filter(f=>f.name&&(f.modes==='both'||f.modes===mode())&&!(flexible&&f.name==='size'));const title=document.createElement('div');title.className='settings-heading';title.textContent='画面设置 · '+p.model;wrap.append(title);if(flexible)renderLayoutSettings(wrap);else{$('settings-toggle').textContent='画面设置';$('settings-toggle').setAttribute('aria-label','画面设置');}for(const field of fields){const group=settingGroup(({aspect_ratio:'画面比例',resolution:'分辨率',size:'图片尺寸',quality:'画质',complexity:'细节程度',output_format:'文件格式',style:'画风',n:'生成数量',response_format:'返回格式'})[field.name]||field.name);const options=field.type==='select'?String(field.options||'').split(',').map(x=>x.trim()).filter(Boolean):[];const current=effectiveFieldValue(field);if(options.length){group.append(chipRow(options,current,value=>{field.value=value;rememberField(field);saveProfiles();renderQuickParams();updatePreview();}));}else{const input=document.createElement('input');input.className='setting-input';input.type=field.type==='number'?'number':'text';if(field.name==='n'){input.min='1';input.max='10';input.step='1';}input.value=current||'';input.placeholder='按接口要求填写；留空不发送';input.onchange=()=>{field.value=input.value;rememberField(field);saveProfiles();updatePreview();};group.append(input);}wrap.append(group);}if(!flexible&&!fields.length){const empty=document.createElement('p');empty.className='setting-empty';empty.textContent='这个模型没有公开可读取的画面参数。';wrap.append(empty);}}
 function saveFieldEdits(){sanitizeOutput(profile().fields);if(!pendingProfile)saveProfiles();renderQuickParams();updatePreview();}
 function fieldControl(field,index,key,label,select=false){const wrap=document.createElement('label');wrap.textContent=label;const input=select?document.createElement('select'):document.createElement('input');if(select)for(const value of key==='type'?['text','number','boolean','select','json']:['both','generate','edit']){const option=document.createElement('option');option.value=value;option.textContent=value;input.append(option);}input.value=field[key]||'';input.onchange=()=>{profile().fields[index][key]=input.value;if(key==='value')rememberField(profile().fields[index]);saveFieldEdits();renderFields();};if(key==='value')input.oninput=()=>{profile().fields[index][key]=input.value;renderQuickParams();updatePreview();};wrap.append(input);return wrap;}
 function renderFields(){const wrap=$('params');wrap.replaceChildren();profile().fields.forEach((field,i)=>{const row=document.createElement('div');row.className='param';row.append(fieldControl(field,i,'name','字段名'),fieldControl(field,i,'value','参数值'));const remove=document.createElement('button');remove.className='remove';remove.textContent='×';remove.onclick=()=>{profile().fields.splice(i,1);saveFieldEdits();renderFields();};row.append(remove);const more=document.createElement('div');more.className='param-settings';more.append(fieldControl(field,i,'type','类型',true),fieldControl(field,i,'modes','适用模式',true));if(field.type==='select')more.append(fieldControl(field,i,'options','选项（逗号分隔）'));row.append(more);wrap.append(row);});}
@@ -217,21 +399,70 @@ async function init(skipConnection=false){
 
 $('new-chat').onclick=newChat;
 $('sidebar-toggle').onclick=()=>setSidebar(!document.body.classList.contains('sidebar-open'));
-matchMedia('(max-width: 760px)').addEventListener('change',closeSidebar);
+$('desktop-sidebar-toggle').onclick=()=>{
+  const collapsed = !document.body.classList.contains('rail-collapsed');
+  localStorage.setItem(railStorageKey, String(collapsed));
+  closeSidebarPopovers();
+  setRailCollapsed(collapsed);
+};
+const historyContains=node=>historyActions?.trigger.contains(node) || historyActions?.panel.contains(node);
+for(const type of ['pointerdown','focusin']) document.addEventListener(type,event=>{
+  if(historyActions && !historyContains(event.target))closeHistoryActions();
+});
+$('chat-list').addEventListener('keydown',event=>{
+  if(event.key!=='Escape' || !historyActions)return;
+  event.preventDefault();
+  event.stopPropagation();
+  closeHistoryActions(true);
+});
+$('chat-list').addEventListener('scroll',()=>closeHistoryActions(historyActions?.panel.contains(document.activeElement)),{passive:true});
+window.addEventListener('resize',()=>closeHistoryActions(historyActions?.panel.contains(document.activeElement)));
+mobileSidebar.addEventListener('change',syncSidebarLayout);
+syncSidebarLayout();
 $('sidebar-shade').onclick=closeSidebar;
 $('cancel-delete').onclick=()=>$('confirm-dialog').close();
 $('confirm-delete').onclick=async()=>{const id=pendingDelete;pendingDelete=null;$('confirm-dialog').close();const removed=chats.find(c=>c.id===id);try{await chatStore.remove(id);}catch(error){notice(`删除失败：${error.message}`);return;}chats=chats.filter(c=>c.id!==id);for(const turn of removed?.turns||[])temporaryImages.delete(turn.id);if(chatId===id){if(!chats.length)newChat();else selectChat(chats[0].id);}else renderChatList();};
-$('profile-select').onchange=e=>{if(!profile().builtIn)sessionKeys.set(profileId,$('api-key').value);profileId=e.target.value;renderProfiles();};
+const modelPicker = $('profile-picker');
+const modelTrigger = $('profile-trigger');
+$('profile-select').onclick = event => {
+  const option = event.target.closest('button[data-model]');
+  if (!option) return;
+  modelPicker.open = false;
+  if(!profile().builtIn)sessionKeys.set(profileId,$('api-key').value);
+  profileId = option.dataset.model;
+  renderProfiles();
+  modelTrigger.focus({preventScroll:true});
+};
+modelPicker.addEventListener('toggle', () => {
+  if (modelPicker.open) setQuickSettings(false);
+});
+modelPicker.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && modelPicker.open) {
+    event.stopPropagation();
+    modelPicker.open = false;
+    modelTrigger.focus({preventScroll:true});
+    return;
+  }
+  if (!['ArrowDown','ArrowUp','Home','End'].includes(event.key)) return;
+  event.preventDefault();
+  modelPicker.open = true;
+  const items = [...$('profile-select').querySelectorAll('button')];
+  const index = items.indexOf(document.activeElement);
+  const next = event.key==='Home' ? 0 : event.key==='End' ? items.length-1 : index<0 ? items.findIndex(item=>item.getAttribute('aria-pressed')==='true') : (index+items.length+(event.key==='ArrowDown'?1:-1))%items.length;
+  items[next]?.focus({preventScroll:true});
+});
+document.addEventListener('pointerdown', event => {
+  if (modelPicker.open && !modelPicker.contains(event.target)) modelPicker.open = false;
+});
+modelPicker.addEventListener('focusout', event => {
+  if (event.relatedTarget && !modelPicker.contains(event.relatedTarget)) modelPicker.open = false;
+});
 function createCustomProfile(){if(!profile().builtIn)sessionKeys.set(profileId,$('api-key').value);profiles.push({id:crypto.randomUUID(),model:'',baseUrl:'',fields:[],layout:{ratio:'auto',tier:'standard'}});profileId=profiles.at(-1).id;pendingProfile=true;renderProfiles();$('dialog-title').textContent='添加自定义模型';$('discover-status').textContent='';$('model-dialog').showModal();}
 $('new-profile').onclick=()=>{closeAccountMenu();if(profile().builtIn)createCustomProfile();else{$('dialog-title').textContent='管理自定义模型';$('discover-status').textContent='';$('model-dialog').showModal();}};
 $('add-another-profile').onclick=createCustomProfile;
-$('login-entry').onclick=()=>{closeAccountMenu();notice('登录注册功能暂未开放。',true);};
 $('export-backup').onclick=async()=>{closeAccountMenu();try{notice('正在整理对话和图片…');const settings={profiles:profiles.filter(p=>!p.builtIn).map(({id,model,baseUrl,fields,parameterSource,layout})=>({id,model,baseUrl,fields,parameterSource,layout})),preferences};const backup=await createBackup(await chatStore.list(),settings,imageBlob);const url=URL.createObjectURL(new Blob([JSON.stringify(backup)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download=`rayai-backup-${new Date().toISOString().slice(0,10)}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),30000);notice('备份已下载。请妥善保管，其中包含你的对话和图片。',true);}catch(error){notice(`导出失败：${error.message}`);}};
 $('import-backup').onclick=()=>{closeAccountMenu();$('backup-file').click();};
 $('backup-file').onchange=async event=>{const file=event.target.files?.[0];event.target.value='';if(!file)return;try{const backup=readBackup(await file.text());const existing=new Map((await chatStore.list()).map(item=>[item.id,item]));let count=0;for(const item of backup.chats){if(!existing.has(item.id)||item.updatedAt>existing.get(item.id).updatedAt){await chatStore.save(item);existing.set(item.id,item);count++;}}const incoming=Array.isArray(backup.settings.profiles)?backup.settings.profiles:[];const current=new Map(profiles.filter(p=>!p.builtIn).map(p=>[p.id,p]));for(const p of incoming){if(typeof p?.id==='string'&&typeof p.model==='string'&&typeof p.baseUrl==='string'&&!String(p.id).startsWith('builtin:'))current.set(p.id,{...p,fields:sanitizeOutput(p.fields||[])});}profiles=[...builtinProfiles(),...current.values()];saveProfiles();const imported=backup.settings.preferences;if(imported?.layout&&imported?.fields){preferences.layout=imported.layout;preferences.fields=imported.fields;savePreferences();}chats=[...existing.values()].sort((a,b)=>b.updatedAt-a.updatedAt);if(chats.length)selectChat(chats[0].id);else newChat();renderProfiles();notice(`导入完成：新增或更新 ${count} 个对话。自定义模型密钥需重新填写。`,true);}catch(error){notice(`导入失败：${error.message}`);}};
-function closeAccountMenu(){$('account-menu').hidden=true;$('account-toggle').setAttribute('aria-expanded','false');}
-$('account-toggle').onclick=()=>{const menu=$('account-menu');menu.hidden=!menu.hidden;$('account-toggle').setAttribute('aria-expanded',String(!menu.hidden));};
-document.addEventListener('pointerdown',e=>{if(!e.target.closest('.account-area'))closeAccountMenu();});
 $('invite-dialog').addEventListener('cancel',e=>e.preventDefault());
 $('invite-form').onsubmit=async e=>{e.preventDefault();const code=$('invite-code').value.trim();$('invite-error').textContent='';try{const response=await apiFetch('/api/invite',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});const data=await response.json();if(!response.ok)throw Error(data.error||'邀请码无效');rememberInvite(data);$('invite-code').value='';$('invite-dialog').close();await init(true);}catch(error){$('invite-error').textContent=error.message;}};
 $('close-dialog').onclick=()=>$('model-dialog').close();
@@ -241,13 +472,51 @@ $('delete-profile').onclick=()=>{if(profile().builtIn)return;sessionKeys.delete(
 $('toggle-key').onclick=()=>{const input=$('api-key');input.type=input.type==='password'?'text':'password';$('toggle-key').textContent=input.type==='password'?'显示':'隐藏';};
 $('add-field').onclick=()=>{profile().fields.push({name:'',type:'text',value:'',options:'',modes:'both'});saveFieldEdits();renderFields();};
 const settingsToggle=$('settings-toggle'),quickSettings=$('quick-params');
+document.body.append(quickSettings);
+settingsToggle.setAttribute('aria-owns','quick-params');
+settingsToggle.addEventListener('keydown',event=>{
+  if(event.key==='Tab'&&!event.shiftKey&&!quickSettings.inert){
+    const first=quickSettings.querySelector('button:not(:disabled), input:not(:disabled)');
+    if(first){event.preventDefault();first.focus();}
+  }
+});
+quickSettings.addEventListener('keydown',event=>{
+  if(event.key!=='Tab')return;
+  const items=[...quickSettings.querySelectorAll('button:not(:disabled), input:not(:disabled)')];
+  if((event.shiftKey&&document.activeElement===items[0])||(!event.shiftKey&&document.activeElement===items.at(-1))){
+    event.preventDefault();setQuickSettings(false,true);
+  }
+});
+function positionQuickSettings(){
+  if(quickSettings.inert)return;
+  const viewport=window.visualViewport;
+  const x=viewport?.offsetLeft||0,y=viewport?.offsetTop||0;
+  const w=viewport?.width||innerWidth,h=viewport?.height||innerHeight;
+  const trigger=settingsToggle.getBoundingClientRect();
+  const gap=8,edge=12,width=Math.min(552,w-2*edge);
+  const below=y+h-edge-trigger.bottom-gap,above=trigger.top-y-edge-gap;
+  const empty=paramWorkspace.classList.contains('is-empty');
+  const openBelow=below>=Math.min(empty?240:360,quickSettings.scrollHeight)||below>=above;
+  const height=Math.max(64,openBelow?below:above);
+  const left=Math.min(x+w-edge-width,Math.max(x+edge,trigger.left));
+  Object.assign(quickSettings.style,{left:`${left}px`,width:`${width}px`,maxHeight:`${height}px`,top:openBelow?`${trigger.bottom+gap}px`:'auto',bottom:openBelow?'auto':`${innerHeight-trigger.top+gap}px`});
+  quickSettings.dataset.side=openBelow?'below':'above';
+}
 function setQuickSettings(open,restoreFocus=false){
   if(quickSettings.inert===!open)return;
   if(!open&&(restoreFocus||quickSettings.contains(document.activeElement)))settingsToggle.focus({preventScroll:true});
   quickSettings.inert=!open;
   quickSettings.classList.toggle('is-open',open);
   settingsToggle.setAttribute('aria-expanded',String(open));
+  if(open)positionQuickSettings();
 }
+window.addEventListener('resize',positionQuickSettings);
+window.addEventListener('scroll',positionQuickSettings,true);
+window.visualViewport?.addEventListener('resize',positionQuickSettings);
+window.visualViewport?.addEventListener('scroll',positionQuickSettings);
+new ResizeObserver(positionQuickSettings).observe(settingsToggle);
+const paramWorkspace=document.querySelector('.chat-workspace');
+new ResizeObserver(positionQuickSettings).observe(paramWorkspace);
 settingsToggle.onclick=()=>setQuickSettings(quickSettings.inert);
 document.addEventListener('pointerdown',event=>{if(!quickSettings.contains(event.target)&&!settingsToggle.contains(event.target))setQuickSettings(false);});
 document.addEventListener('pointerdown',event=>{if(!$('image-menu').contains(event.target))closeImageMenu();});
