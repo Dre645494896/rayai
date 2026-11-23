@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
+    "demo": "node demo-server.js",
     "build:site": "node scripts/build-site.mjs",
     "build:pages": "node scripts/build-pages.mjs",
     "test": "npm run build:site && node --test"

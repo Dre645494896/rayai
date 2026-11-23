@@ -1,0 +1,23 @@
+#settings-toggle { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ratio-icon { box-sizing: border-box; flex: none; display: inline-block; width: var(--ratio-w, 14px); height: var(--ratio-h, 14px); border: 1.5px solid currentColor; border-radius: 3px; }
+.ratio-icon[data-kind='auto'] { border-style: dashed; }
+.ratio-icon[data-kind='custom'] { border-style: dotted; }
+body > #quick-params { position: fixed; z-index: 30; box-sizing: border-box; padding: 16px; border: 1px solid var(--ray-border); border-radius: 16px; background: var(--ray-panel); color: var(--ray-text); box-shadow: 0 8px 24px #0007; overflow: auto; overscroll-behavior: contain; opacity: 0; transform: translateY(4px); visibility: hidden; pointer-events: none; transition: opacity 160ms ease, transform 180ms ease, visibility 0s linear 180ms; }
+body > #quick-params[data-side='below'] { transform: translateY(-4px); }
+body > #quick-params.is-open { opacity: 1; transform: none; visibility: visible; pointer-events: auto; transition-delay: 0s; }
+body > #quick-params .settings-heading { position: static; color: var(--ray-text); margin: 0 0 12px; font-size: 14px; overflow-wrap: anywhere; }
+body > #quick-params .setting-group { display: grid; grid-template-columns: minmax(0,1fr); gap: 8px; margin: 0 0 12px; }
+body > #quick-params .setting-group:last-child { margin-bottom: 0; }
+body > #quick-params .setting-label, body > #quick-params .size-note { margin: 0; color: var(--ray-muted); font-variant-numeric: tabular-nums; }
+body > #quick-params .size-note[data-invalid='true'] { color: #efaaa0; }
+body > #quick-params .ratio-options, body > #quick-params .resolution-options { display: grid; gap: 4px; padding: 4px; border-radius: 12px; background: var(--ray-surface); }
+body > #quick-params .ratio-options { grid-template-columns: repeat(5,minmax(0,1fr)); }
+body > #quick-params .resolution-options { grid-template-columns: repeat(3,minmax(0,1fr)); }
+body > #quick-params .ratio-options button { display: grid; justify-items: center; align-content: center; gap: 4px; min-height: 48px; min-width: 0; padding: 4px; }
+body > #quick-params .resolution-options button { min-width: 0; }
+body > #quick-params .custom-size input { min-width: 0; background: var(--ray-control); color: var(--ray-text); border: 1px solid var(--ray-control-border); }
+body > #quick-params .setting-chip:disabled { opacity: .4; cursor: not-allowed; }
+body > #quick-params .setting-chip.selected { color: var(--ray-accent-ink); background: var(--ray-accent); }
+body > #quick-params :focus-visible { outline: 2px solid var(--ray-focus); outline-offset: 1px; }
+@media (max-width: 380px) { body > #quick-params .ratio-options { grid-template-columns: repeat(4,minmax(0,1fr)); } }
+@media (prefers-reduced-motion: reduce) { body > #quick-params { transition: none; } }

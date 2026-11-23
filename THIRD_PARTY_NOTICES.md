@@ -5,7 +5,9 @@ The loading-screen Aurora shader in `aurora.js` is adapted from the
 The chat composer's edge lighting in `chat-app.js` and `chat-v3.css` is
 adapted from [React Bits Border Glow](https://reactbits.dev/c/components/border-glow)
 ([source revision](https://github.com/DavidHDev/react-bits/tree/fefc5b05ca34a7475b38a977127441fbfad2f177/src/content/Components/BorderGlow)).
-The license below applies to both adaptations.
+The local demo's membership cards use the WebGL renderer adapted from
+[React Bits Reflective Card](https://github.com/DavidHDev/react-bits/blob/701a8acc34f718b305d1ff0cc7d4700df0e1f1c9/src/content/Components/ReflectiveCard/ReflectiveCard.jsx).
+The license below applies to these adaptations.
 
 MIT + Commons Clause License Condition v1.0
 
