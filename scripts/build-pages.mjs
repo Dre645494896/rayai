@@ -3,7 +3,7 @@ import {resolve} from 'node:path';
 
 const root=resolve(import.meta.dirname,'..');
 const output=resolve(root,'dist/pages');
-const files=['index.html','style.css','simple.css','chat.css','chat-v2.css','chat-v3.css','demo.css','demo-params.css','demo-reflective.js','production-wallet.js','chat-app.js','aurora.js','chat-store.js','image-settings.js','api-client.js','backup.js','rayai-icon.png','favicon.ico','THIRD_PARTY_NOTICES.md'];
+const files=['index.html','style.css','simple.css','chat.css','chat-v2.css','chat-v3.css','demo.css','demo-params.css','workspace-apple.css','workspace-selection.css','workspace-selection.js','workspace-glass.js','glasswork-lens.js','workspace-appearance.js','workspace-generation.js','demo-reflective.js','production-wallet.js','chat-app.js','aurora.js','chat-store.js','image-settings.js','api-client.js','backup.js','rayai-icon.png','favicon.ico','THIRD_PARTY_NOTICES.md'];
 const base=process.env.RAYAI_API_BASE_URL||'';
 if(base&&(!/^https:\/\/[^/]+$/.test(base)||new URL(base).username||new URL(base).password))throw Error('RAYAI_API_BASE_URL 须为 HTTPS 服务源地址');
 await mkdir(output,{recursive:true});

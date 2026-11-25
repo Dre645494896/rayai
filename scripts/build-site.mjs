@@ -3,7 +3,7 @@ import { readFile, mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
-const files = ['index.html', 'style.css', 'simple.css', 'chat.css', 'chat-v2.css', 'chat-v3.css', 'demo.css', 'demo-params.css', 'demo-reflective.js', 'production-wallet.js', 'chat-app.js', 'aurora.js', 'chat-store.js', 'image-settings.js', 'api-client.js', 'backup.js', 'rayai-config.js', 'rayai-icon.png', 'favicon.ico', 'THIRD_PARTY_NOTICES.md'];
+const files = ['index.html', 'style.css', 'simple.css', 'chat.css', 'chat-v2.css', 'chat-v3.css', 'demo.css', 'demo-params.css', 'workspace-apple.css', 'workspace-selection.css', 'workspace-selection.js', 'workspace-glass.js', 'glasswork-lens.js', 'workspace-appearance.js', 'workspace-generation.js', 'demo-reflective.js', 'production-wallet.js', 'chat-app.js', 'aurora.js', 'chat-store.js', 'image-settings.js', 'api-client.js', 'backup.js', 'rayai-config.js', 'rayai-icon.png', 'favicon.ico', 'THIRD_PARTY_NOTICES.md'];
 const assets = {};
 for (const name of files) {
   const binary = name.endsWith('.png') || name.endsWith('.ico');

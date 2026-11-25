@@ -1,6 +1,4 @@
 // Production account and wallet previews are UI only: nothing is submitted or persisted.
-import { mountReflectiveCard } from './demo-reflective.js';
-
 const $ = id => document.getElementById(id);
 const wallet = { trigger: $('store-open'), panel: $('wallet-popover') };
 const account = { trigger: $('account-toggle'), panel: $('account-menu') };
@@ -11,9 +9,10 @@ const ledgerDialog = $('ledger-dialog');
 
 function closePopover({ trigger, panel }, restoreFocus = false) {
   if (panel.hidden) return;
+  if (restoreFocus) trigger.focus({ preventScroll: true });
+  panel.inert = true;
   panel.hidden = true;
   trigger.setAttribute('aria-expanded', 'false');
-  if (restoreFocus) trigger.focus({ preventScroll: true });
 }
 
 export function closeAccountMenu(restoreFocus = false) {
@@ -30,8 +29,9 @@ for (const { trigger, panel } of popovers) {
     closeSidebarPopovers();
     if (!opening) return;
     panel.hidden = false;
+    panel.inert = false;
     trigger.setAttribute('aria-expanded', 'true');
-    panel.querySelector('button').focus({ preventScroll: true });
+    (panel.querySelector('input[type="radio"]:checked') ?? panel.querySelector('button')).focus({ preventScroll: true });
   });
 }
 
@@ -65,13 +65,6 @@ const topupPreview = [
   { name: '600 积分', price: 60, points: 600 },
 ];
 const formatNumber = new Intl.NumberFormat('zh-CN');
-let disposeCards = [];
-
-function removeCardEffects() {
-  for (const dispose of disposeCards) dispose();
-  disposeCards = [];
-}
-
 function element(tag, text = '', className = '') {
   const node = document.createElement(tag);
   if (text) node.textContent = text;
@@ -80,14 +73,12 @@ function element(tag, text = '', className = '') {
 }
 
 function renderStore(view) {
-  removeCardEffects();
   const topup = view === 'topup';
   $('store-title').textContent = topup ? '积分充值预览' : '会员预览';
   $('store-topup').hidden = topup;
   $('store-back').hidden = !topup;
   storeDialog.dataset.view = view;
 
-  const plates = [];
   const cards = (topup ? topupPreview : membershipPreview).map(({ id, name, price, points }) => {
     const card = element('article', '', topup ? 'store-card' : 'store-card reflective-plan');
     const title = element('h3', name);
@@ -105,14 +96,10 @@ function renderStore(view) {
       terms.append(pricing, amount);
       plate.append(title, terms, action);
       card.append(plate);
-      plates.push([card, plate]);
     }
     return card;
   });
   $('store-cards').replaceChildren(...cards);
-  if (typeof ResizeObserver === 'function') {
-    disposeCards = plates.map(([card, plate]) => mountReflectiveCard(card, plate));
-  }
 }
 
 function openStore(view = 'membership') {
@@ -133,6 +120,3 @@ $('store-back').addEventListener('click', () => openStore());
 for (const dialog of [accountDialog, storeDialog, ledgerDialog]) {
   dialog.querySelector('.close-btn').addEventListener('click', () => dialog.close());
 }
-storeDialog.addEventListener('close', () => {
-  if (!storeDialog.open) removeCardEffects();
-});

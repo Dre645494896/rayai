@@ -1,0 +1,702 @@
+/* Production workspace only; load after the shared chat and demo styles.
+   Keep positioning, control state, and the settings grid in their existing layers. */
+:root {
+  color-scheme: light dark;
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  /* `initial` activates a var() fallback; a whitespace value suppresses it.
+     This keeps a single set of color pairs, including on older browsers. */
+  --apple-light: initial;
+  --apple-dark: ;
+  --ray-bg: var(--apple-light, #f5f6f8) var(--apple-dark, #17181b);
+  --ray-surface: var(--apple-light, #eff0f3) var(--apple-dark, #1d1f23);
+  --ray-panel: var(--apple-light, #fff) var(--apple-dark, #272a30);
+  --ray-control: var(--apple-light, #e7e9ee) var(--apple-dark, #2e3239);
+  --ray-hover: var(--apple-light, #dce0e8) var(--apple-dark, #3b414b);
+  --ray-border: var(--apple-light, #d3d7df) var(--apple-dark, #3b3f47);
+  --ray-control-border: var(--apple-light, #777e8a) var(--apple-dark, #838b99);
+  --ray-text: var(--apple-light, #20232b) var(--apple-dark, #f4f5f7);
+  --ray-muted: var(--apple-light, #535c6b) var(--apple-dark, #c4ccd8);
+  --ray-accent: var(--apple-light, #2e517f) var(--apple-dark, #aec6e6);
+  --ray-accent-ink: var(--apple-light, #fff) var(--apple-dark, #172a43);
+  --ray-focus: var(--apple-light, #245da8) var(--apple-dark, #a0c7ff);
+  --apple-accent-hover: var(--apple-light, #254369) var(--apple-dark, #c5d9f1);
+  --apple-error: var(--apple-light, #8f252c) var(--apple-dark, #ffb6bc);
+  --apple-error-surface: var(--apple-light, #fcebee) var(--apple-dark, #3a272d);
+  --apple-error-ink: var(--apple-light, #fff) var(--apple-dark, #451c22);
+  --apple-error-hover: var(--apple-light, #a13038) var(--apple-dark, #ffd6da);
+  --apple-success: var(--apple-light, #236437) var(--apple-dark, #bde8c9);
+  --apple-success-surface: var(--apple-light, #e6f4ea) var(--apple-dark, #26362e);
+  --apple-scrim: var(--apple-light, rgb(24 31 44 / .42)) var(--apple-dark, rgb(0 0 0 / .65));
+  --apple-chrome-glass: var(--apple-light, rgb(255 255 255 / .28)) var(--apple-dark, rgb(30 31 36 / .38));
+  --apple-panel-glass: var(--apple-light, rgb(255 255 255 / .50)) var(--apple-dark, rgb(36 39 46 / .54));
+  /* Text sits directly on these two surfaces, so give the glass itself a contrast floor. */
+  --apple-prompt-glass: var(--apple-light, rgb(255 255 255 / .62)) var(--apple-dark, rgb(30 31 36 / .70));
+  --apple-settings-glass: var(--apple-light, rgb(255 255 255 / .68)) var(--apple-dark, rgb(36 39 46 / .74));
+  --apple-glass-copy: var(--apple-light, #292f38) var(--apple-dark, #ebedf2);
+  --apple-reading-glass: var(--apple-light, rgb(255 255 255 / .95)) var(--apple-dark, rgb(39 42 48 / .96));
+  --apple-glass-rim: var(--apple-light, rgb(255 255 255 / .56)) var(--apple-dark, rgb(244 245 247 / .17));
+  --apple-glass-catch: var(--apple-light, rgb(255 255 255 / .96)) var(--apple-dark, rgb(218 233 255 / .47));
+  --apple-glass-bevel: var(--apple-light, rgb(255 255 255 / .70)) var(--apple-dark, rgb(188 212 244 / .23));
+  --apple-glass-shade: var(--apple-light, rgb(44 52 65 / .29)) var(--apple-dark, rgb(0 0 0 / .62));
+  /* Narrow specular face and a darker opposite bevel leave the refracting band exposed. */
+  --apple-glass-edge: inset 1px 1px 1px var(--apple-glass-catch), inset -1px -1px 1px var(--apple-glass-rim), inset 2px 7px 9px -5px var(--apple-glass-bevel), inset -2px -7px 9px -5px var(--apple-glass-shade);
+  --apple-glass-edge-quiet: inset 1px 1px 2px var(--apple-glass-bevel), inset -1px -3px 5px var(--apple-glass-shade);
+  --apple-edge-shadow: 0 1px 3px var(--apple-light, rgb(28 36 53 / .07)) var(--apple-dark, rgb(0 0 0 / .29));
+  --apple-float-shadow: var(--apple-edge-shadow), 0 12px 36px var(--apple-light, rgb(28 36 53 / .12)) var(--apple-dark, rgb(0 0 0 / .34));
+  --apple-radius: 8px;
+  --apple-inset: 4px;
+  --apple-popover-radius: calc(var(--apple-radius) + var(--apple-inset));
+  --apple-composer-inset: 12px;
+  --apple-dialog-radius: calc(var(--apple-radius) + 16px);
+  --apple-divider: 1px solid var(--ray-border);
+  --apple-glass-tone: var(--apple-light, saturate(155%) brightness(1.05)) var(--apple-dark, saturate(145%) brightness(.83));
+  --apple-blur: blur(2px) var(--apple-glass-tone);
+}
+:root[data-theme='light'] { color-scheme: light; }
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --apple-light: ;
+  --apple-dark: initial;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --apple-light: ;
+    --apple-dark: initial;
+  }
+}
+
+body { line-height: 1.5; }
+button, input, select, textarea { font-family: inherit; }
+:is(input, textarea)::placeholder { color: var(--ray-muted); opacity: 1; }
+:is(button, summary, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--ray-focus);
+  outline-offset: 2px;
+}
+:is(.app-shell, dialog, #quick-params) :is(button, summary, select) {
+  transition: background-color 140ms ease-out, color 140ms ease-out, border-color 140ms ease-out;
+}
+.app-shell { height: 100vh; height: 100dvh; }
+
+/* Navigation: an inset surface without changing the sidebar's positioning. */
+.chat-header {
+  position: relative;
+  z-index: 8;
+  height: 56px;
+  margin: 12px 16px 0;
+  padding-inline: 16px;
+  background: var(--ray-panel);
+  border: var(--apple-divider);
+  border-radius: 16px;
+  box-shadow: var(--apple-edge-shadow);
+}
+svg.workspace-icon {
+  display: block;
+  inline-size: 16px;
+  block-size: 16px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+:is(.add-image, .send-button, .account-toggle, #viewer-close) svg.workspace-icon {
+  inline-size: 20px;
+  block-size: 20px;
+}
+:is(.workspace-cost, .demo-balance) svg.workspace-icon { inline-size: 15px; block-size: 15px; }
+#profile-trigger svg.workspace-icon { inline-size: 14px; block-size: 14px; stroke-width: 1.75; }
+.chat-title { font-size: 14px; font-weight: 600; }
+#sidebar .side-brand strong, .demo-mobile-brand strong { font-weight: 650; }
+#sidebar .side-caption { font-size: 12px; font-weight: 550; letter-spacing: 0; }
+.chat-sidebar .new-chat {
+  border-radius: calc(var(--apple-radius) + 4px);
+  background: var(--ray-control);
+  font-weight: 600;
+}
+.chat-sidebar .new-chat:hover { background: var(--ray-hover); }
+#chat-list .chat-row { border-radius: calc(var(--apple-radius) + 2px); }
+#chat-list .chat-row.active .chat-select { font-weight: 650; }
+#chat-list .chat-row.active { box-shadow: inset 2px 0 var(--ray-muted); }
+#chat-list .chat-more { opacity: 1; color: var(--ray-muted); }
+#chat-list .rename-input { min-block-size: 36px; }
+:is(.chat-header, .workspace-account) :is(.header-button, .icon-button), .rail-toggle {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ray-muted);
+  border-radius: var(--apple-radius);
+}
+:is(.chat-header, .workspace-account) :is(.header-button, .icon-button):is(:hover, [aria-expanded='true']),
+.rail-toggle:hover { background: var(--ray-hover); color: var(--ray-text); }
+
+/* Keep the prompt, attachments and generated images visually ahead of chrome. */
+.welcome h1 {
+  margin: 0;
+  color: var(--ray-text);
+  font-size: clamp(24px, 3.3vw, 36px);
+  font-weight: 650;
+  letter-spacing: -.025em;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+.composer-wrap { background: transparent; }
+/* Let the scrollport extend beneath both edges of the floating chrome.
+   Matching content padding still reveals the first/last turn at scroll limits. */
+.chat-workspace:not(.is-empty) {
+  --apple-top-overlap: 42px;
+  --apple-bottom-overlap: 78px;
+  margin-block-start: calc(-1 * var(--apple-top-overlap));
+}
+.chat-workspace:not(.is-empty) .conversation {
+  padding-block-start: calc(32px + var(--apple-top-overlap));
+  padding-block-end: calc(28px + var(--apple-bottom-overlap));
+  scroll-padding-block: var(--apple-top-overlap) var(--apple-bottom-overlap);
+  scrollbar-color: var(--ray-control-border) transparent;
+}
+.chat-workspace:not(.is-empty) .composer-wrap {
+  position: relative;
+  margin-block-start: calc(-1 * var(--apple-bottom-overlap));
+  pointer-events: none;
+}
+.chat-workspace:not(.is-empty) .composer-wrap > * { pointer-events: auto; }
+.composer.composer-glow, .composer {
+  padding: var(--apple-composer-inset);
+  border: 1px solid var(--ray-control-border);
+  border-radius: calc(var(--apple-radius) + var(--apple-composer-inset));
+  background: var(--ray-panel);
+  box-shadow: inset 0 0 0 1px var(--ray-border), var(--apple-float-shadow);
+}
+.composer.composer-glow:focus-within { border-color: var(--ray-focus); }
+.composer-edge-light, .reflective-canvas, .generation-glow { display: none; }
+.composer-input { gap: 8px; }
+.composer :is(.add-image, .toolbar-button) {
+  border: 1px solid transparent;
+  border-radius: var(--apple-radius);
+  background: var(--ray-control);
+  color: var(--ray-text);
+}
+.composer :is(.add-image, .toolbar-button):is(:hover, [aria-expanded='true']),
+#profile-picker[open] #profile-trigger { background: var(--ray-hover); }
+.composer .add-image { inline-size: 44px; block-size: 44px; transform: none; font-size: 24px; }
+.composer #prompt {
+  padding: 8px;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  font-size: 15px;
+}
+.composer #prompt:focus { background: transparent; border-color: transparent; box-shadow: none; outline: none; }
+.composer.composer-glow:has(#prompt:focus-visible) { outline: 2px solid var(--ray-focus); outline-offset: 2px; }
+.composer-toolbar { gap: 8px; }
+.toolbar-left { gap: 4px; }
+.composer .toolbar-button { min-block-size: 36px; padding: 6px 8px; font-size: 13px; }
+#profile-trigger { max-inline-size: min(100%, 224px); }
+.mode-hint { color: var(--ray-muted); }
+.send-button {
+  width: 44px;
+  height: 44px;
+  font-size: 23px;
+  line-height: 1;
+}
+.send-button:hover:not(:disabled) { background: var(--apple-accent-hover); }
+.send-button:disabled { background: var(--ray-hover); color: var(--ray-muted); border-color: transparent; }
+.send-spinner { border-color: var(--ray-muted); border-top-color: transparent; }
+.composer .file-list { gap: 8px; scrollbar-color: var(--ray-control-border) transparent; }
+.attachment-card, .attachment-add {
+  border-color: var(--ray-control-border);
+  border-radius: var(--apple-radius);
+  background: var(--ray-control);
+  color: var(--ray-text);
+}
+.attachment-add:is(:hover, :focus-visible) { background: var(--ray-hover); color: var(--ray-text); }
+.attachment-remove {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: var(--ray-bg);
+  color: var(--ray-text);
+}
+.attachment-remove:hover, .attachment-remove:focus-visible { background: var(--apple-error-surface); color: var(--apple-error); }
+.attachment-preview:focus-visible, .turn-images img:focus-visible { outline-offset: -3px; }
+.turns { gap: 32px; }
+.user-bubble {
+  border: var(--apple-divider);
+  border-radius: calc(var(--apple-radius) + 8px);
+  background: var(--ray-surface);
+}
+.user-bubble p { font-size: 15px; }
+.answer-meta { color: var(--ray-muted); font-size: 13px; font-weight: 550; overflow-wrap: anywhere; }
+.turn-images img, .generation-placeholder { border-radius: var(--apple-radius); }
+.turn-images img { display: block; border-color: var(--ray-border); }
+.image-frame .download-image {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-block-size: 28px;
+  margin-top: 4px;
+  color: var(--ray-muted);
+  border-radius: var(--apple-radius);
+}
+.image-frame .download-image:hover { background: var(--ray-hover); color: var(--ray-text); }
+.generation-placeholder { background: var(--ray-surface); border-color: var(--ray-border); box-shadow: none; }
+.generation-placeholder::before { content: none; animation: none; }
+.generation-placeholder span { letter-spacing: 0; text-shadow: none; }
+.message-actions button { min-inline-size: 32px; min-block-size: 32px; color: var(--ray-muted); }
+.message-editor { width: min(500px, 66vw); }
+.message-editor textarea {
+  background: var(--ray-panel);
+  color: var(--ray-text);
+  border-color: var(--ray-control-border);
+}
+.demo-cost[data-shortfall='true'], .demo-cost[data-shortfall='true'] strong { color: var(--apple-error); }
+
+/* Popovers remain readable even without backdrop filtering or over images. */
+:is(.account-menu, .image-menu), #profile-select, #chat-list .chat-actions,
+body > #quick-params {
+  background: var(--ray-panel);
+  color: var(--ray-text);
+  border: var(--apple-divider);
+  box-shadow: var(--apple-float-shadow);
+  border-radius: var(--apple-popover-radius);
+}
+:is(.account-menu, .image-menu) { padding: var(--apple-inset); }
+:is(.account-menu, .image-menu) button,
+#profile-select button, #chat-list .chat-actions button {
+  color: var(--ray-text);
+  border-radius: var(--apple-radius);
+  font-size: 13px;
+}
+.image-menu button { display: flex; align-items: center; gap: 8px; }
+#chat-list .chat-actions button { justify-content: start; }
+#chat-list .chat-actions button:is(:hover, :focus-visible),
+:is(.account-menu, .image-menu) button:is(:hover, :focus-visible) { background: var(--ray-hover); }
+:is(.account-menu, .image-menu, #profile-select, #quick-params, .chat-actions) button:focus-visible { outline-offset: -2px; }
+#profile-select button[aria-pressed='true'] { box-shadow: inset 2px 0 var(--ray-accent); }
+body > #quick-params { border-radius: calc(var(--apple-radius) + 16px); }
+body > #quick-params .settings-heading { color: var(--ray-text); font-weight: 650; }
+#quick-params.workspace-params .setting-chip {
+  padding-inline: 2px;
+  border: 1px solid transparent;
+  border-radius: var(--apple-radius);
+}
+#quick-params.workspace-params .setting-chip.selected { box-shadow: none; }
+#quick-params.workspace-params .setting-chip.selected:hover:not(:disabled) { background: var(--apple-accent-hover); }
+body > #quick-params {
+  transition: opacity 150ms ease-out, transform 180ms cubic-bezier(.2,.75,.25,1), visibility 0s linear 180ms;
+}
+
+/* Keep native hidden/details behavior. Only account menus guarded by inert
+   can finish a discrete exit; menus that rely on hidden alone close instantly. */
+@media (prefers-reduced-motion: no-preference) {
+  :is(.account-menu, .image-menu), #profile-select, #chat-list .chat-actions {
+    transition: opacity 150ms ease-out, translate 180ms cubic-bezier(.2,.75,.25,1);
+  }
+  @supports (transition-behavior: allow-discrete) {
+    .account-menu:is(:not([hidden]), [hidden][inert]) {
+      transition: opacity 150ms ease-out, translate 180ms cubic-bezier(.2,.75,.25,1), display 180ms allow-discrete;
+    }
+    .account-menu[hidden][inert] { opacity: 0; translate: 0 4px; pointer-events: none; }
+    #mobile-account .account-menu[hidden][inert] { translate: 0 -4px; }
+  }
+  @starting-style {
+    :is(.account-menu, .image-menu):not([hidden]), #profile-picker[open] #profile-select,
+    #chat-list .chat-actions:not([hidden]) { opacity: 0; translate: 0 4px; }
+    #mobile-account .account-menu:not([hidden]) { translate: 0 -4px; }
+  }
+}
+
+/* Native radios maintain arrow-key selection and a single tab stop. The
+   adjacent label is the visual segment and mirrors checked/focus state. */
+.account-area #account-menu { inline-size: min(232px, calc(100vw - 24px)); }
+.appearance-picker {
+  min-inline-size: 0;
+  margin: 4px;
+  padding: 8px 0 4px;
+  border: 0;
+  border-block-start: var(--apple-divider);
+}
+.appearance-picker legend {
+  padding: 0 6px;
+  color: var(--ray-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.appearance-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--apple-popover-radius);
+  background: var(--ray-control);
+}
+.appearance-options label { position: relative; cursor: pointer; }
+.appearance-options input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: 0;
+  padding: 0;
+  clip-path: inset(50%);
+  overflow: hidden;
+}
+.appearance-options span {
+  display: grid;
+  min-block-size: 36px;
+  padding: 4px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--apple-radius);
+  color: var(--ray-text);
+  font-size: 12px;
+  text-align: center;
+  overflow-wrap: anywhere;
+  transition: background-color 140ms ease-out, color 140ms ease-out;
+}
+.appearance-options label:hover span { background: var(--ray-hover); }
+.appearance-options input:checked + span { background: var(--ray-accent); color: var(--ray-accent-ink); font-weight: 650; }
+.appearance-options input:focus-visible + span { outline: 2px solid var(--ray-focus); outline-offset: 1px; }
+
+/* Modal sheets and single-column forms. */
+:is(#model-dialog, #invite-dialog, #account-dialog, #store-dialog, #ledger-dialog, #confirm-dialog),
+#store-dialog[data-view='membership'] {
+  padding: 16px;
+  max-height: calc(100dvh - 24px);
+  background: var(--ray-surface);
+  color: var(--ray-text);
+  border: var(--apple-divider);
+  border-radius: var(--apple-dialog-radius);
+  box-shadow: var(--apple-float-shadow);
+}
+:is(#model-dialog, #invite-dialog, #account-dialog, #store-dialog, #ledger-dialog, #confirm-dialog, #image-viewer)::backdrop,
+#store-dialog[data-view='membership']::backdrop { background: var(--apple-scrim); }
+:is(#model-dialog, #invite-dialog, #account-dialog, #store-dialog, #ledger-dialog, #confirm-dialog) h2 {
+  font-size: 21px;
+  font-weight: 650;
+  letter-spacing: -.015em;
+  text-wrap: balance;
+}
+:is(#account-dialog, #ledger-dialog, #store-dialog) .dialog-header {
+  display: flex;
+  text-align: start;
+  align-items: center;
+  padding: 0;
+}
+:is(#account-dialog, #ledger-dialog, #store-dialog) .dialog-header .close-btn { position: static; }
+:is(#model-dialog, #account-dialog, #store-dialog, #ledger-dialog) .close-btn {
+  display: grid;
+  place-items: center;
+  inline-size: 44px;
+  block-size: 44px;
+  flex: none;
+  padding: 0;
+  border-radius: var(--apple-radius);
+  color: var(--ray-muted);
+}
+:is(#model-dialog, #account-dialog, #store-dialog, #ledger-dialog) .close-btn:hover { background: var(--ray-hover); color: var(--ray-text); }
+:is(#auth-form, #invite-dialog, #model-dialog, #quick-params) :is(input, select), .rename-input {
+  background: var(--ray-control);
+  color: var(--ray-text);
+  border: 1px solid var(--ray-control-border);
+  border-radius: var(--apple-radius);
+  min-block-size: 44px;
+  padding: 8px 12px;
+}
+:is(#model-dialog, #auth-form) label { color: var(--ray-text); font-size: 13px; }
+#model-dialog .model-section + .model-section { border-top: var(--apple-divider); padding-top: 16px; }
+#model-dialog .model-section-heading h3 { font-size: 15px; }
+#model-dialog .key-wrap input { padding-inline-end: 64px; }
+#model-dialog #toggle-key {
+  inset-block: 0;
+  display: grid;
+  place-items: center;
+  min-inline-size: 44px;
+  padding: 0;
+  color: var(--ray-text);
+  font-size: 13px;
+}
+#model-dialog :is(.advanced, .request-preview) summary {
+  min-block-size: 44px;
+  align-content: center;
+  border-radius: var(--apple-radius);
+  font-size: 13px;
+  font-weight: 600;
+}
+#model-dialog :is(.text-btn, .remove) { min-block-size: 44px; border-radius: var(--apple-radius); }
+#model-dialog .param .remove {
+  display: grid;
+  place-items: center;
+  min-inline-size: 44px;
+  padding: 0;
+  background: var(--apple-error-surface);
+  color: var(--apple-error);
+}
+:is(#model-dialog, #account-dialog, #store-dialog, #confirm-dialog) .secondary,
+.message-editor button {
+  background: var(--ray-control);
+  color: var(--ray-text);
+  border: 1px solid var(--ray-control-border);
+  border-radius: var(--apple-radius);
+  min-block-size: 44px;
+}
+:is(#model-dialog, #account-dialog, #store-dialog, #confirm-dialog) .secondary:hover:not(:disabled),
+.message-editor button:hover:not(.confirm-edit) { background: var(--ray-hover); }
+:is(#model-dialog, #account-dialog) .primary, #invite-dialog button, .message-editor .confirm-edit {
+  background: var(--ray-accent);
+  color: var(--ray-accent-ink);
+  border: 1px solid transparent;
+  border-radius: var(--apple-radius);
+  box-shadow: none;
+  min-block-size: 44px;
+  font-weight: 650;
+}
+:is(#model-dialog, #account-dialog) .primary:hover:not(:disabled), #invite-dialog button:hover,
+.message-editor .confirm-edit:hover { background: var(--apple-accent-hover); }
+#auth-form input { width: 100%; }
+#auth-form :disabled, #store-dialog button:disabled { background: var(--ray-control); color: var(--ray-muted); cursor: not-allowed; }
+#account-dialog #account-message, #ledger-dialog #ledger-note { margin-block: 0 16px; background: var(--ray-control); color: var(--ray-muted); }
+#confirm-dialog .danger { min-block-size: 44px; background: var(--apple-error); color: var(--apple-error-ink); font-weight: 650; }
+#confirm-dialog .danger:hover { background: var(--apple-error-hover); }
+#delete-profile, #invite-dialog #invite-error, #quick-params .size-note[data-invalid='true'] { color: var(--apple-error); }
+.composer-wrap .message:not(.ok), .turn-error { background: var(--apple-error-surface); color: var(--apple-error); }
+.composer-wrap .message.ok { background: var(--apple-success-surface); color: var(--apple-success); }
+
+/* Both catalog views use the same simple cards, regardless of JS markup. */
+#store-dialog[data-view='membership'][open] { display: block; height: auto; }
+#store-dialog[data-view='membership'] #store-title {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip-path: none;
+  white-space: normal;
+}
+#store-dialog[data-view] #store-message {
+  padding: 0;
+  border: 0;
+  text-align: start;
+  color: var(--ray-muted);
+}
+#store-dialog[data-view] #store-message[data-error='true'],
+#account-dialog #account-message[data-error='true'], #ledger-dialog #ledger-note[data-error='true'] { color: var(--apple-error); }
+#store-dialog[data-view] .store-cards { gap: 8px; }
+#store-dialog .store-card, #store-dialog .reflective-plate {
+  display: grid;
+  grid-template-rows: none;
+  justify-items: start;
+  align-content: start;
+  gap: 8px;
+  aspect-ratio: auto;
+  padding: 12px;
+  border: var(--apple-divider);
+  border-radius: calc(var(--apple-radius) + 4px);
+  background: var(--ray-panel);
+  box-shadow: none;
+  text-align: start;
+  transform: none;
+}
+#store-dialog .reflective-plan { padding: 0; border: 0; background: transparent; }
+#store-dialog .reflective-plate::after { content: none; }
+#store-dialog .store-card h3 { font-size: 16px; font-weight: 650; }
+#store-dialog .store-card .store-price { text-align: start; }
+#store-dialog .store-card .store-price strong { font-size: 26px; font-weight: 650; }
+#store-dialog .store-card .secondary { margin: 4px 0 0; }
+#store-dialog .store-footer button { max-inline-size: 100%; }
+
+#image-viewer {
+  display: none;
+  background: var(--ray-surface);
+  color: var(--ray-text);
+  height: min(94dvh, 1000px);
+  border: var(--apple-divider);
+  border-radius: var(--apple-dialog-radius);
+  box-shadow: var(--apple-float-shadow);
+}
+#image-viewer[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+.viewer-toolbar {
+  z-index: 1;
+  min-inline-size: 0;
+  min-block-size: 52px;
+  height: auto;
+  margin: 8px 8px 0;
+  padding-inline: 12px;
+  border: var(--apple-divider);
+  border-radius: 16px;
+  background: var(--ray-panel);
+  box-shadow: var(--apple-edge-shadow);
+}
+.viewer-toolbar > div { gap: 4px; flex: none; }
+.viewer-toolbar button { border-radius: var(--apple-radius); }
+.viewer-toolbar button:hover { background: var(--ray-hover); }
+.viewer-toolbar #viewer-close { display: grid; place-items: center; min-width: 44px; min-height: 44px; padding: 0; }
+.viewer-stage { min-block-size: 0; height: auto; }
+.viewer-zoom {
+  position: relative;
+  z-index: 1;
+  width: auto;
+  min-width: 6ch;
+  height: auto;
+  margin: 0 auto 8px;
+  padding: 4px 8px;
+  border: var(--apple-divider);
+  border-radius: var(--apple-radius);
+  background: var(--ray-panel);
+}
+
+/* Surfaces are solid by default; opt into the translucent treatment only
+   where backdrop filtering exists and system accessibility permits it. */
+@supports ((backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px))) {
+  @media not (prefers-reduced-transparency: reduce) {
+    @media not (prefers-contrast: more) {
+      @media not (forced-colors: active) {
+        .chat-header, .composer.composer-glow, .viewer-toolbar, .viewer-zoom {
+          background-color: var(--apple-chrome-glass);
+          -webkit-backdrop-filter: var(--apple-blur);
+          backdrop-filter: var(--apple-blur) var(--glass-lens,);
+          box-shadow: var(--apple-glass-edge), var(--apple-edge-shadow);
+          corner-shape: round;
+        }
+        :is(.account-menu, .image-menu), #profile-select, #chat-list .chat-actions,
+        body > #quick-params {
+          background-color: var(--apple-panel-glass);
+          -webkit-backdrop-filter: var(--apple-blur);
+          backdrop-filter: var(--apple-blur) var(--glass-lens,);
+          box-shadow: var(--apple-glass-edge), var(--apple-float-shadow);
+          corner-shape: round;
+        }
+        :is(.account-menu, .image-menu), #profile-select, #chat-list .chat-actions {
+          box-shadow: var(--apple-glass-edge-quiet), var(--apple-float-shadow);
+        }
+        .chat-sidebar { box-shadow: var(--apple-glass-edge-quiet), var(--apple-edge-shadow); }
+        :is(#model-dialog, #invite-dialog, #account-dialog, #store-dialog, #ledger-dialog, #confirm-dialog),
+        #store-dialog[data-view='membership'] {
+          box-shadow: var(--apple-glass-edge), var(--apple-float-shadow);
+        }
+        .composer.composer-glow { background-color: var(--apple-prompt-glass); }
+        body > #quick-params { background-color: var(--apple-settings-glass); }
+        .composer #prompt::placeholder,
+        body > #quick-params :is(.setting-label, .size-note:not([data-invalid='true']), .setting-empty) {
+          color: var(--apple-glass-copy);
+        }
+        /* Keep local reading layers on the other glass controls. */
+        .chat-header :is(.chat-title, .demo-mobile-brand, .icon-button, .header-button),
+        .composer :is(.mode-hint, .workspace-cost),
+        .viewer-toolbar :is(.viewer-desktop-hint, .viewer-mobile-hint, button), .viewer-zoom,
+        :is(.account-menu, .image-menu) button, #profile-select button,
+        #chat-list .chat-actions button, .wallet-total, .appearance-picker legend {
+          background: var(--apple-reading-glass);
+        }
+        .chat-header .chat-title { flex: 0 1 auto; min-width: 0; }
+        #mobile-account { margin-inline-start: auto; }
+        .chat-header :is(.chat-title, .demo-mobile-brand),
+        .viewer-toolbar :is(.viewer-desktop-hint, .viewer-mobile-hint),
+        .composer :is(.mode-hint, .workspace-cost) {
+          border-radius: var(--apple-radius);
+          padding-inline: 8px;
+        }
+        :is(.account-menu, .image-menu) button:is(:hover, :focus-visible),
+        #profile-select button:is(:hover, [aria-pressed='true']),
+        #chat-list .chat-actions button:is(:hover, :focus-visible),
+        .chat-header :is(.icon-button, .header-button):is(:hover, [aria-expanded='true']),
+        .viewer-toolbar button:hover { background: var(--ray-hover); }
+      }
+    }
+  }
+}
+@media (prefers-contrast: more) {
+  :root { --ray-border: var(--ray-control-border); }
+  .composer :is(.add-image, .toolbar-button), #quick-params.workspace-params .setting-chip:not(.selected),
+  .viewer-toolbar button { border: 1px solid var(--ray-control-border); }
+  .appearance-options input:checked + span { border-color: var(--ray-accent-ink); }
+}
+.connection-screen {
+  background-color: #05050b;
+  color: #f8f9ff;
+}
+.connection-screen { transition: opacity 160ms ease-out, visibility 160ms ease-out; }
+.connection-percent {
+  color: inherit;
+  font-family: inherit;
+  font-size: clamp(42px, 9vw, 64px);
+  font-weight: 500;
+  letter-spacing: -.02em;
+}
+.connection-error { color: #ffe3e5; font: inherit; }
+.connection-retry {
+  min-block-size: 44px;
+  font: inherit;
+}
+
+@media (max-width: 760px) {
+  .chat-header {
+    height: 52px;
+    margin: max(8px, env(safe-area-inset-top, 0px)) max(8px, env(safe-area-inset-right, 0px)) 0 max(8px, env(safe-area-inset-left, 0px));
+    padding-inline: 4px;
+    gap: 4px;
+  }
+  .chat-header :is(.icon-button, .header-button) { min-block-size: 44px; }
+  .appearance-options span { min-block-size: 44px; }
+  .chat-sidebar {
+    padding-block-start: max(16px, env(safe-area-inset-top, 0px));
+    padding-block-end: max(12px, env(safe-area-inset-bottom, 0px));
+  }
+  .conversation { padding-inline: max(12px, env(safe-area-inset-left, 0px)) max(12px, env(safe-area-inset-right, 0px)); }
+  .chat-workspace:not(.is-empty) { --apple-top-overlap: 32px; --apple-bottom-overlap: 52px; }
+  .chat-workspace:not(.is-empty) .conversation {
+    padding-block-start: calc(20px + var(--apple-top-overlap));
+    padding-block-end: calc(20px + var(--apple-bottom-overlap));
+  }
+  .welcome { margin: clamp(24px, 14dvh, 112px) auto 0; }
+  .composer-wrap {
+    padding: 8px max(8px, env(safe-area-inset-right, 0px)) max(8px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px));
+  }
+  .composer { --apple-composer-inset: 8px; }
+  .composer .toolbar-button { min-block-size: 44px; }
+  :is(.composer, .message-editor) textarea,
+  :is(#invite-dialog, #model-dialog, #quick-params) :is(input, select) { font-size: 16px; }
+  .attachment-remove { width: 44px; height: 44px; }
+  .viewer-toolbar { padding-inline: 8px; }
+  .viewer-toolbar button, .message-actions button, .image-menu button { min-block-size: 44px; }
+  .message-actions button { min-inline-size: 44px; }
+}
+@media (max-width: 570px) {
+  #store-dialog[data-view='membership'] .store-cards { grid-template-columns: 1fr; }
+}
+@media (max-width: 420px) {
+  .composer-toolbar { align-items: end; }
+  .composer-toolbar .toolbar-left {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    align-items: center;
+    flex: 1;
+  }
+  .composer-toolbar .mode-hint { grid-column: 1 / -1; }
+  .composer-toolbar .toolbar-button { font-size: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell *, dialog *, .image-menu, .connection-screen, body > #quick-params,
+  #sidebar, #sidebar .rail-label, #sidebar .brand-icon, #sidebar .rail-toggle .sidebar-icon {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  body > #quick-params[data-side] { transform: none; }
+}
+@media (forced-colors: active) {
+  :is(.account-menu, .image-menu), #profile-select, #chat-list .chat-actions,
+  body > #quick-params { border-color: CanvasText; }
+  #chat-list .chat-row.active, #quick-params.workspace-params .setting-chip.selected,
+  #profile-select button[aria-pressed='true'], .appearance-options input:checked + span {
+    outline: 1px solid Highlight;
+    outline-offset: -1px;
+  }
+  :is(.app-shell, dialog, #quick-params) :focus-visible, .appearance-options input:focus-visible + span {
+    outline: 2px solid Highlight;
+  }
+}

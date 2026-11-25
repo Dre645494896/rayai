@@ -20,4 +20,47 @@ body > #quick-params .setting-chip:disabled { opacity: .4; cursor: not-allowed; 
 body > #quick-params .setting-chip.selected { color: var(--ray-accent-ink); background: var(--ray-accent); }
 body > #quick-params :focus-visible { outline: 2px solid var(--ray-focus); outline-offset: 1px; }
 @media (max-width: 380px) { body > #quick-params .ratio-options { grid-template-columns: repeat(4,minmax(0,1fr)); } }
+/* Keep workspace settings on a shared label and control grid. */
+body > #quick-params.workspace-params {
+  --settings-chip-width: 56px;
+  --settings-chip-height: 48px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 16px;
+  margin: 0;
+}
+#quick-params.workspace-params .settings-heading,
+#quick-params.workspace-params .setting-group { margin: 0; }
+#quick-params.workspace-params .setting-group { grid-template-columns: minmax(0, 1fr); }
+#quick-params.workspace-params .setting-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, var(--settings-chip-width));
+  gap: 4px;
+  padding: 0;
+  background: none;
+}
+#quick-params.workspace-params .setting-chip {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: var(--settings-chip-height);
+  padding: 4px;
+  line-height: 16px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+#quick-params.workspace-params .size-note { margin: 0; overflow-wrap: anywhere; }
+#quick-params.workspace-params .custom-size input { flex: 1; width: 0; }
+@media (min-width: 761px) {
+  #quick-params.workspace-params .setting-group { grid-template-columns: 96px minmax(0, 1fr); gap: 8px 16px; }
+  #quick-params.workspace-params .setting-label { padding: 14px 0; }
+  #quick-params.workspace-params .size-note { grid-column: 2; }
+  #quick-params.workspace-params .size-note:nth-child(2) { align-self: center; }
+}
+@media (max-width: 760px) {
+  #quick-params.workspace-params .setting-label { padding: 0; }
+}
 @media (prefers-reduced-motion: reduce) { body > #quick-params { transition: none; } }

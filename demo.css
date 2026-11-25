@@ -20,6 +20,8 @@
 .demo-send { gap: 8px; flex: none; }
 .demo-cost { font-size: 12px; color: var(--ray-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .demo-cost strong { color: var(--ray-text); }
+.workspace-cost { display: inline-flex; align-items: center; gap: 4px; }
+.workspace-cost .sidebar-icon { width: 15px; height: 15px; }
 .demo-cost[data-shortfall="true"], .demo-cost[data-shortfall="true"] strong { color: #efaaa0; }
 .demo-failure { display: flex; flex-direction: row; align-items: center; gap: 7px; margin: 0; padding: 9px 12px; font-size: 12px; cursor: pointer; }
 .demo-failure input { width: auto; margin: 0; accent-color: var(--ray-accent); }
@@ -88,6 +90,7 @@
   #desktop-account { margin-top:auto; padding-block-start:8px; border-top:1px solid var(--ray-border); }
   #desktop-account .account-area { justify-content:space-between; }
   #desktop-account .account-menu { top:auto; bottom:calc(100% + 8px); left:0; right:auto; }
+  #desktop-account .workspace-account .wallet-popover { left:auto; right:0; }
   #desktop-account .account-toggle, #desktop-account .demo-balance { min-width:44px; min-height:44px; }
   #desktop-account .account-control { flex:none; }
   #desktop-account .demo-balance { max-width:100%; font-size:14px; padding-inline:8px; }
@@ -98,10 +101,11 @@
   .rail-collapsed #sidebar .rail-toggle:is(:hover,:focus) .sidebar-icon { opacity:1; transform:scale(1); }
   .rail-collapsed #sidebar .side-brand:has(.rail-toggle:is(:hover,:focus)) .brand-icon { opacity:0; transform:scale(.94); }
   .rail-collapsed #desktop-account .account-area { flex-direction:column; gap:4px; }
-  .rail-collapsed #desktop-account .account-menu { left:calc(100% + 12px); right:auto; bottom:0; }
+  .rail-collapsed #desktop-account .account-menu, .rail-collapsed #desktop-account .workspace-account .wallet-popover { left:calc(100% + 12px); right:auto; bottom:0; }
   .rail-collapsed #desktop-account .demo-balance { flex-direction:column; justify-content:center; gap:2px; padding:4px 0; width:44px; }
-  .rail-collapsed #desktop-account .balance-label { font-size:0; }
-  .rail-collapsed #desktop-account .balance-label::after { content:attr(data-compact); font-size:11px; }
+  .rail-collapsed #desktop-account .workspace-account .balance-label { font-size:11px; }
+  .rail-collapsed #desktop-account .account-area:not(.workspace-account) .balance-label { font-size:0; }
+  .rail-collapsed #desktop-account .account-area:not(.workspace-account) .balance-label::after { content:attr(data-compact); font-size:11px; }
   .chat-workspace.is-empty { display:grid; grid-template-rows:minmax(0, .78fr) auto auto minmax(0, 1fr); overflow:auto; }
   .chat-workspace.is-empty .conversation { grid-row:2; padding:0 16px 20px; overflow:visible; }
   .chat-workspace.is-empty .welcome { position:static; transform:none; margin:0; padding:0; }

@@ -1,0 +1,48 @@
+/* The layer is decorative; the original button/radio owns focus, hit testing and state. */
+.workspace-selection-track {
+  position: relative;
+  isolation: isolate;
+}
+.workspace-selection-track > :is(.setting-chip, label) {
+  position: relative;
+  z-index: 1;
+}
+.workspace-selection-pill {
+  position: absolute;
+  inset: auto;
+  display: block;
+  box-sizing: border-box;
+  border: 1px solid var(--ray-control-border);
+  border-radius: var(--apple-radius);
+  background: var(--apple-light, rgb(143 178 225 / .30)) var(--apple-dark, rgb(122 160 214 / .27));
+  box-shadow: var(--apple-edge-shadow);
+  pointer-events: none;
+  transform-origin: top left;
+}
+
+/* Keep the lane visible under intervening chips; hover must not mask the moving pill. */
+#quick-params.workspace-params .workspace-selection-track {
+  background: var(--ray-surface);
+}
+#quick-params.workspace-params .workspace-selection-track .setting-chip:not(:disabled, .selected),
+#quick-params.workspace-params .workspace-selection-track[data-selection-ready] .setting-chip.selected,
+.appearance-options[data-selection-ready] input:checked + span {
+  background: transparent;
+  color: var(--ray-text);
+}
+#quick-params.workspace-params .workspace-selection-track .setting-chip:hover:not(:disabled, .selected),
+.appearance-options[data-selection-ready] label:hover input:not(:checked) + span {
+  background: var(--apple-light, rgb(46 81 127 / .08)) var(--apple-dark, rgb(174 198 230 / .10));
+}
+#quick-params.workspace-params .workspace-selection-track[data-selection-ready] .setting-chip.selected,
+.appearance-options[data-selection-ready] input:checked + span {
+  font-weight: 650;
+}
+
+@media (forced-colors: active) {
+  .workspace-selection-pill { display: none; }
+  #quick-params.workspace-params .workspace-selection-track[data-selection-ready] .setting-chip.selected,
+  .appearance-options[data-selection-ready] input:checked + span {
+    border-color: Highlight;
+  }
+}
