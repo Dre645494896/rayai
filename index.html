@@ -48,7 +48,7 @@
       <div class="composer composer-glow">
         <span class="composer-edge-light" aria-hidden="true"></span>
         <div id="file-list" class="file-list" aria-label="待发送的参考图" hidden></div>
-        <div class="composer-input"><button id="empty-add-image" class="add-image" type="button" aria-label="添加参考图" title="添加参考图"><svg class="workspace-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-image-plus"/></svg></button><textarea id="prompt" rows="3" aria-label="画面描述" placeholder="粘贴或上传参考图，描述你想生成的图片…"></textarea></div>
+        <div class="composer-input"><button id="empty-add-image" class="add-image" type="button" aria-label="添加参考图" title="添加参考图"><svg class="workspace-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-image-plus"/></svg></button><textarea id="prompt" rows="3" aria-label="画面描述" aria-describedby="composer-status message" placeholder="粘贴或上传参考图，描述你想生成的图片…"></textarea></div>
         <input id="file-input" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
         <div class="composer-toolbar">
           <div class="toolbar-left">
@@ -56,8 +56,9 @@
             <details id="profile-picker"><summary id="profile-trigger" class="toolbar-button" aria-label="使用模型"><span id="profile-label"></span><svg class="workspace-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-chevron-up"/></svg></summary><div id="profile-select" role="group" aria-label="模型"></div></details>
             <button id="settings-toggle" class="toolbar-button" type="button" aria-controls="quick-params" aria-expanded="false"><svg class="workspace-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-sliders-horizontal"/></svg> 画面设置</button>
           </div>
-          <div class="demo-send"><span id="cost-line" class="demo-cost workspace-cost" aria-label="积分消耗未开通" title="积分消耗未开通"><svg class="sidebar-icon workspace-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-zap"/></svg><strong id="cost">0</strong></span><button id="generate" class="send-button" type="button" aria-label="发送生成请求" aria-describedby="cost-line"><svg class="workspace-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-arrow-up"/></svg></button></div>
+          <div class="demo-send"><span id="cost-line" class="demo-cost workspace-cost" aria-label="积分消耗未开通" title="积分消耗未开通"><svg class="sidebar-icon workspace-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-zap"/></svg><strong id="cost">0</strong></span><button id="generate" class="send-button" type="button" aria-label="发送生成请求" aria-describedby="composer-status cost-line" aria-disabled="true"><svg class="workspace-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#icon-arrow-up"/></svg></button></div>
         </div>
+        <p id="composer-status" class="composer-status" role="status" aria-atomic="true">输入画面描述后即可发送。</p>
         <section id="quick-params" class="quick-params workspace-params" aria-label="画面设置" inert></section>
       </div>
     </div>

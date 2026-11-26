@@ -200,8 +200,18 @@ svg.workspace-icon {
   font-size: 23px;
   line-height: 1;
 }
-.send-button:hover:not(:disabled) { background: var(--apple-accent-hover); }
-.send-button:disabled { background: var(--ray-hover); color: var(--ray-muted); border-color: transparent; }
+.send-button:hover:not([aria-disabled='true']) { background: var(--apple-accent-hover); }
+.send-button[aria-disabled='true'] { background: var(--ray-hover); color: var(--ray-muted); border-color: transparent; cursor: default; }
+.send-button[data-sending='true'] { cursor: wait; }
+.composer-status {
+  margin: 6px 0 0;
+  color: var(--ray-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.composer #prompt, .composer-toolbar .toolbar-left { min-inline-size: 0; }
+.user-bubble p, .turn-error { overflow-wrap: anywhere; }
 .send-spinner { border-color: var(--ray-muted); border-top-color: transparent; }
 .composer .file-list { gap: 8px; scrollbar-color: var(--ray-control-border) transparent; }
 .attachment-card, .attachment-add {
@@ -657,7 +667,8 @@ body > #quick-params {
   }
   .composer { --apple-composer-inset: 8px; }
   .composer .toolbar-button { min-block-size: 44px; }
-  :is(.composer, .message-editor) textarea,
+  .composer #prompt,
+  .message-editor textarea,
   :is(#invite-dialog, #model-dialog, #quick-params) :is(input, select) { font-size: 16px; }
   .attachment-remove { width: 44px; height: 44px; }
   .viewer-toolbar { padding-inline: 8px; }

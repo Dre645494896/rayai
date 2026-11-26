@@ -49,8 +49,8 @@ function notice(message,good=false,brief=false){
 }
 function persistChat(item){const snapshot=structuredClone(item);saveQueue=saveQueue.catch(()=>{}).then(()=>chatStore.save(snapshot));return saveQueue.catch(error=>{notice(`保存对话失败：${error.message}。刷新后这轮可能无法恢复。`);throw error;});}
 function createChat(){const now=Date.now();const item={id:crypto.randomUUID(),title:'新聊天',manualTitle:false,pinned:false,createdAt:now,updatedAt:now,turns:[]};chats.unshift(item);chatId=item.id;localStorage.setItem(ACTIVE_CHAT_KEY,item.id);return item;}
-function newChat(){chatId=null;localStorage.removeItem(ACTIVE_CHAT_KEY);$('prompt').value='';uploads=[];renderUploads();notice('');renderChatList();renderConversation();closeSidebar();}
-function selectChat(id,refreshList=true){chatId=id;localStorage.setItem(ACTIVE_CHAT_KEY,id);if(refreshList)renderChatList();else updateChatSelection();renderConversation();closeSidebar();}
+function newChat(){chatId=null;localStorage.removeItem(ACTIVE_CHAT_KEY);$('prompt').value='';uploads=[];renderUploads();updateComposerStatus();updatePreview();notice('');renderChatList();renderConversation();closeSidebar();}
+function selectChat(id,refreshList=true){chatId=id;localStorage.setItem(ACTIVE_CHAT_KEY,id);if(refreshList)renderChatList();else updateChatSelection();renderConversation();updateComposerStatus();closeSidebar();}
 const mobileSidebar = matchMedia('(max-width: 760px)');
 const railStorageKey = 'rayai-sidebar-collapsed-v1';
 function setRailCollapsed(collapsed) {
@@ -310,11 +310,13 @@ function sizeGroup(custom) {
   const node = settingGroup(custom ? '自定义尺寸' : '尺寸');
   const note = document.createElement('p');
   note.className = 'size-note';
+  if (custom) { note.id = 'custom-size-note'; note.setAttribute('aria-live', 'polite'); }
   const updateSize = layout => {
     const size = resolveSize(layout);
     note.textContent = size.error || (size.size === 'auto' ? '自动' : `${size.label} px`);
     note.hidden = custom && !size.error;
     note.dataset.invalid = String(Boolean(size.error));
+    for (const input of Object.values(inputs)) input.setAttribute('aria-invalid', String(Boolean(size.error)));
     updateSettingsSummary();
   };
   const inputs = {};
@@ -326,6 +328,7 @@ function sizeGroup(custom) {
       input.type = 'number'; input.min = '16'; input.max = '3840'; input.step = '16';
       input.placeholder = key === 'width' ? '宽 W' : '高 H';
       input.setAttribute('aria-label', key === 'width' ? '宽度（像素）' : '高度（像素）');
+      input.setAttribute('aria-describedby', note.id);
       input.oninput = () => {
         preferences.layout = {...preferences.layout, [key]:input.value};
         savePreferences(); updateSize(effectiveLayout()); updatePreview();
@@ -449,11 +452,24 @@ function renderUploads(){const wrap=$('file-list');wrap.replaceChildren();wrap.h
 async function readParams(){const baseUrl=$('base-url').value.trim(),model=$('model').value.trim();if(!baseUrl||!model){$('discover-status').textContent='请填写 API 地址和模型 ID。';return false;}$('discover-status').textContent='正在读取接口参数…';$('read-params').disabled=true;try{const response=await apiFetch('/api/discover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({baseUrl,model,apiKey:$('api-key').value.trim()})});const data=await response.json();if(!response.ok)throw Error(data.error);profile().fields=sanitizeOutput(data.fields);profile().parameterSource=data.verified?'api':'official';if(!pendingProfile)saveProfiles();renderFields();renderQuickParams();updatePreview();$('discover-status').textContent=data.source;return true;}catch(error){$('discover-status').textContent=`读取失败：${error.message}`;return false;}finally{$('read-params').disabled=false;}}
 async function saveProfile(){const p=profile(),model=$('model').value.trim(),baseUrl=$('base-url').value.trim();if(p.builtIn)return;if(!model||!baseUrl){$('discover-status').textContent='请填写 API 地址和模型 ID。';return;}if(pendingProfile||p.model!==model||p.baseUrl!==baseUrl)await readParams();p.model=model;p.baseUrl=baseUrl;p.name=model;p.layout||={ratio:'auto',tier:'standard'};const key=$('api-key').value.trim();if(key){sessionKeys.set(profileId,key);savedKeys.set(profileId,key);}else{sessionKeys.delete(profileId);savedKeys.delete(profileId);}try{saveProfiles();saveKeys();}catch(error){$('discover-status').textContent=`保存失败：${error.message}`;return;}pendingProfile=false;renderProfiles();$('model-dialog').close();notice((key?'模型和 API Key 已保存到当前浏览器。':'模型已保存，API Key 为空。')+$('discover-status').textContent,true);}
 async function imageBlob(src){if(src.startsWith('data:'))return await (await fetch(src)).blob();const response=await apiFetch('/api/download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:src})});if(!response.ok){let message=`HTTP ${response.status}`;try{message=(await response.json()).error||message;}catch{}throw Error(message);}return response.blob();}
-function setSending(value){busy=value;const button=$('generate');button.disabled=value;button.innerHTML=value?'<span class="send-spinner" aria-hidden="true"></span>':iconMarkup('arrow-up');button.setAttribute('aria-label',value?'正在生成图片':'发送生成请求');}
+function updateComposerStatus(result = '') {
+  const hasPrompt = Boolean($('prompt').value.trim());
+  $('generate').setAttribute('aria-disabled', String(busy || !hasPrompt));
+  const status = $('composer-status');
+  const text = result || (busy ? '正在生成图片，可以继续编辑下一条。' : !hasPrompt ? '输入画面描述后即可发送。' : matchMedia('(pointer: coarse)').matches ? '可以发送。' : 'Enter 发送 · Shift + Enter 换行');
+  if (status && status.textContent !== text) status.textContent = text;
+}
+function setSending(value,result){busy=value;const button=$('generate');button.dataset.sending=String(value);button.innerHTML=value?'<span class="send-spinner" aria-hidden="true"></span>':iconMarkup('arrow-up');button.setAttribute('aria-label',value?'正在生成图片':'发送生成请求');updateComposerStatus(result);}
+function submitComposer() {
+  if (busy) return;
+  const input = $('prompt');
+  if (!input.value.trim()) { input.focus(); return; }
+  return generate();
+}
 async function generate(override=null){if(busy)return;let body;const references=override?.references||uploads,requestMode=references.length?'edit':'generate';try{body={baseUrl:profile().builtIn?undefined:profile().baseUrl,apiKey:profile().builtIn?undefined:sessionKeys.get(profileId)||$('api-key').value.trim(),builtinId:profile().builtIn?profile().model:undefined,model:profile().model,prompt:(override?.prompt??$('prompt').value).trim(),mode:requestMode,params:params(requestMode),images:override?[]:references.map(({name,data})=>({name,data}))};if(!profile().builtIn&&!body.apiKey)throw Error('请在模型选择器里打开“管理当前自定义模型”，填写 API Key。');if(!body.prompt)throw Error('请输入画面描述。');}catch(error){notice(error.message);return;}
   const size=family(profile().model)&&profile().parameterSource!=='api'?resolveSize(effectiveLayout()):/^\d+x\d+$/.test(body.params.size||'')?(()=>{const [w,h]=body.params.size.split('x').map(Number);return {ratio:w/h,label:`${w} × ${h}`};})():{ratio:1,label:'自动尺寸'};
-  setSending(true);const origin=override?.origin||chat()||createChat(),originId=origin.id;const turn={id:crypto.randomUUID(),prompt:body.prompt,model:body.model,mode:body.mode,references:references.map(x=>({name:x.name,blob:x.blob})),images:[],status:'pending',error:'',aspectRatio:size.ratio,sizeLabel:size.label,createdAt:Date.now()};origin.turns.push(turn);if(origin.turns.length===1&&!origin.manualTitle)origin.title=body.prompt.slice(0,28)||'新聊天';origin.updatedAt=Date.now();renderChatList();if(chatId===originId)renderConversation();const saved=await persistChat(origin).then(()=>true,()=>false);if(!saved)turn.error='这轮对话尚未保存到浏览器。';if(!override){$('prompt').value='';uploads=[];renderUploads();}
-  try{if(override&&requestMode==='edit')body.images=await Promise.all(references.map(async ref=>({name:ref.name,data:(await fileData(new File([ref.blob],ref.name||'reference.png',{type:ref.blob.type}))).data})));const response=await apiFetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const result=await response.json();if(!response.ok)throw Error(result.error||`请求失败：HTTP ${response.status}`);turn.images=await prepareGeneratedPngs(result.images,imageBlob,pngBlob);turn.status='done';}catch(error){turn.status='failed';turn.error=error.message;}finally{origin.updatedAt=Date.now();await persistChat(origin).catch(()=>{});renderChatList();if(chatId===originId)renderConversation();setSending(false);}}
+  setSending(true);const origin=override?.origin||chat()||createChat(),originId=origin.id;const turn={id:crypto.randomUUID(),prompt:body.prompt,model:body.model,mode:body.mode,references:references.map(x=>({name:x.name,blob:x.blob})),images:[],status:'pending',error:'',aspectRatio:size.ratio,sizeLabel:size.label,createdAt:Date.now()};origin.turns.push(turn);if(origin.turns.length===1&&!origin.manualTitle)origin.title=body.prompt.slice(0,28)||'新聊天';origin.updatedAt=Date.now();renderChatList();if(chatId===originId)renderConversation();if(!override){$('prompt').value='';uploads=[];renderUploads();updatePreview();}const saved=await persistChat(origin).then(()=>true,()=>false);if(!saved)turn.error='这轮对话尚未保存到浏览器。';
+  try{if(override&&requestMode==='edit')body.images=await Promise.all(references.map(async ref=>({name:ref.name,data:(await fileData(new File([ref.blob],ref.name||'reference.png',{type:ref.blob.type}))).data})));const response=await apiFetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const result=await response.json();if(!response.ok)throw Error(result.error||`请求失败：HTTP ${response.status}`);turn.images=await prepareGeneratedPngs(result.images,imageBlob,pngBlob);turn.status='done';}catch(error){turn.status='failed';turn.error=error.message;}finally{origin.updatedAt=Date.now();await persistChat(origin).catch(()=>{});renderChatList();if(chatId===originId)renderConversation();setSending(false,chatId!==originId?'':turn.status==='done'?'图片已生成。':'生成失败，请在对话中查看原因。');}}
 async function connectService(){
   const screen=$('connection-screen'),retry=$('connection-retry'),status=$('connection-status');
   let stopAurora=()=>{};
@@ -591,9 +607,14 @@ settingsToggle.addEventListener('keydown',event=>{
 quickSettings.addEventListener('keydown',event=>{
   if(event.key!=='Tab')return;
   const items=[...quickSettings.querySelectorAll('button:not(:disabled), input:not(:disabled)')];
-  if((event.shiftKey&&document.activeElement===items[0])||(!event.shiftKey&&document.activeElement===items.at(-1))){
+  if(event.shiftKey&&document.activeElement===items[0]){
     event.preventDefault();setQuickSettings(false,true);
+  }else if(!event.shiftKey&&document.activeElement===items.at(-1)){
+    event.preventDefault();$('generate').focus({preventScroll:true});setQuickSettings(false);
   }
+});
+document.addEventListener('focusin',event=>{
+  if(!quickSettings.inert&&!quickSettings.contains(event.target)&&!settingsToggle.contains(event.target))setQuickSettings(false);
 });
 function positionQuickSettings(){
   if(quickSettings.inert)return;
@@ -629,8 +650,8 @@ settingsToggle.onclick=()=>setQuickSettings(quickSettings.inert);
 document.addEventListener('pointerdown',event=>{if(!quickSettings.contains(event.target)&&!settingsToggle.contains(event.target))setQuickSettings(false);});
 document.addEventListener('pointerdown',event=>{if(!$('image-menu').contains(event.target))closeImageMenu();});
 document.addEventListener('keydown',event=>{
-  if(event.key!=='Escape')return;
-  if(!quickSettings.inert)setQuickSettings(false,true);
+  if(event.key!=='Escape'||event.defaultPrevented||event.isComposing)return;
+  if(!quickSettings.inert){event.preventDefault();setQuickSettings(false,true);}
   else if(!$('image-menu').hidden)closeImageMenu();
   else if(!document.querySelector('dialog[open]'))closeSidebar();
 });
@@ -640,8 +661,10 @@ async function addFiles(files){for(const file of files){if(!['image/png','image/
 $('file-input').onchange=async e=>{await addFiles([...e.target.files]);e.target.value='';};
 $('empty-add-image').onclick=()=>$('file-input').click();
 $('prompt').addEventListener('paste',e=>{const files=[...(e.clipboardData?.items||[])].filter(item=>item.kind==='file'&&item.type.startsWith('image/')).map(item=>item.getAsFile()).filter(Boolean);if(!files.length)return;e.preventDefault();addFiles(files).catch(error=>notice(`粘贴图片失败：${error.message}`));});
-$('prompt').oninput=updatePreview;$('model').oninput=updatePreview;$('generate').onclick=()=>generate();
-$('prompt').onkeydown=e=>{if(e.key!=='Enter'||e.shiftKey||e.altKey||e.isComposing||e.keyCode===229)return;e.preventDefault();generate();};
+$('prompt').oninput=()=>{updateComposerStatus();updatePreview();};
+$('model').oninput=updatePreview;
+$('generate').onclick=submitComposer;
+$('prompt').onkeydown=e=>{if(e.key!=='Enter'||e.shiftKey||e.altKey||e.isComposing||e.keyCode===229)return;e.preventDefault();if(!e.repeat)submitComposer();};
 $('viewer-close').onclick=()=>$('image-viewer').close();$('viewer-reset').onclick=()=>setViewerScale(1);
 $('viewer-stage').addEventListener('wheel',e=>{e.preventDefault();setViewerScale(viewerScale*(e.deltaY<0?1.12:1/1.12));},{passive:false});
 $('viewer-image').addEventListener('load',renderViewer);
